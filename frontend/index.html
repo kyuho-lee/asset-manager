@@ -409,7 +409,18 @@ button[onclick*="downloadExcel"]:hover {
                 
                 <!-- 메시지 입력 -->
                 <div id="chatInputArea" style="padding: 15px; border-top: 1px solid #eee; display: none;">
+                    <!-- 이미지 미리보기 -->
+                    <div id="imagePreviewArea" style="display: none; margin-bottom: 10px; padding: 10px; background: #f5f5f5; border-radius: 10px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img id="imagePreview" src="" style="max-width: 150px; max-height: 150px; border-radius: 8px;">
+                            <button onclick="cancelImageUpload()" style="padding: 5px 10px; background: #ff4444; color: white; border: none; border-radius: 5px; cursor: pointer;">✕ 취소</button>
+                        </div>
+                    </div>
                     <div style="display: flex; gap: 10px;">
+                        <label style="padding: 12px 15px; background: #f0f0f0; border-radius: 25px; cursor: pointer; display: flex; align-items: center;">
+                            <input type="file" id="imageInput" accept="image/*" onchange="previewImage(event)" style="display: none;">
+                            📷
+                        </label>
                         <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." 
                             style="flex: 1; padding: 12px 15px; border: 1.5px solid #ddd; border-radius: 25px; font-size: 14px; outline: none;"
                             onkeypress="if(event.key === 'Enter') sendMessage()">

@@ -53,6 +53,9 @@ app.get('/api/status', (req, res) => {
 // 반드시 API 라우트 뒤에 위치해야 함
 app.use(express.static(path.join(__dirname, '../frontend')));
 
+// 업로드 파일 정적 제공
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // ========== 에러 핸들링 ==========
 
 // 404 에러 처리

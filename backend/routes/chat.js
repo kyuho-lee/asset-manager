@@ -2,6 +2,36 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
+const multer = require('multer');
+const path = require('path');
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/');
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'chat-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB 제한
+    fileFilter: function (req, file, cb) {
+        const allowedTypes = /jpeg|jpg|png|gif|webp/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+        
+        if (extname && mimetype) {
+            return cb(null, true);
+        } else {
+            cb(new Error('이미지 파일만 업로드 가능합니다.'));
+        }
+    }
+});
+
+
 
 // 모든 채팅 API는 로그인 필요
 router.use(authenticateToken);
@@ -256,5 +286,29 @@ router.get('/users', async (req, res) => {
         res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
     }
 });
+
+// ========== 이미지 업로드 ==========
+router.post('/upload', upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: '이미지를 선택해주세요.' });
+        }
+        
+        const fileUrl = '/uploads/' + req.file.filename;
+        
+        res.json({ 
+            success: true, 
+            data: { 
+                fileUrl: fileUrl,
+                filename: req.file.filename 
+            },
+            message: '이미지가 업로드되었습니다.' 
+        });
+    } catch (error) {
+        console.error('이미지 업로드 오류:', error);
+        res.status(500).json({ success: false, message: '이미지 업로드 실패' });
+    }
+});
+
 
 module.exports = router;

@@ -2923,7 +2923,7 @@ async function openChatRoom(roomId, roomName) {
     loadChatRooms();
 }
 
-// 메시지 로드
+// 메시지 로드 (이미지 지원)
 async function loadMessages(roomId) {
     try {
         var response = await apiRequest('/chat/rooms/' + roomId + '/messages', { method: 'GET' });
@@ -2943,13 +2943,21 @@ async function loadMessages(roomId) {
             var time = new Date(msg.created_at);
             var timeStr = time.getHours() + ':' + String(time.getMinutes()).padStart(2, '0');
             
+            // 메시지 내용 (이미지 또는 텍스트)
+            var messageContent = '';
+            if (msg.message_type === 'image' && msg.file_url) {
+                messageContent = '<img src="' + API_BASE_URL.replace('/api', '') + msg.file_url + '" style="max-width: 200px; max-height: 200px; border-radius: 10px; cursor: pointer;" onclick="openImageModal(this.src)">';
+            } else {
+                messageContent = msg.message;
+            }
+            
             if (isMe) {
                 // 내 메시지 (오른쪽)
                 html += '<div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">';
                 html += '<div style="display: flex; align-items: flex-end; gap: 8px;">';
                 html += '<span style="font-size: 11px; color: #999;">' + timeStr + '</span>';
                 html += '<div style="background: #0066cc; color: white; padding: 10px 15px; border-radius: 18px 18px 4px 18px; max-width: 300px; word-break: break-word;">';
-                html += msg.message;
+                html += messageContent;
                 html += '</div>';
                 html += '</div>';
                 html += '</div>';
@@ -2960,7 +2968,7 @@ async function loadMessages(roomId) {
                 html += '<div style="font-size: 12px; color: #666; margin-bottom: 5px;">' + msg.sender_name + '</div>';
                 html += '<div style="display: flex; align-items: flex-end; gap: 8px;">';
                 html += '<div style="background: white; padding: 10px 15px; border-radius: 18px 18px 18px 4px; max-width: 300px; word-break: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">';
-                html += msg.message;
+                html += messageContent;
                 html += '</div>';
                 html += '<span style="font-size: 11px; color: #999;">' + timeStr + '</span>';
                 html += '</div>';
@@ -2979,20 +2987,57 @@ async function loadMessages(roomId) {
     }
 }
 
-// 메시지 전송
+// 이미지 크게 보기
+function openImageModal(src) {
+    var modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 10000; cursor: pointer;';
+    modal.onclick = function() { document.body.removeChild(modal); };
+    
+    var img = document.createElement('img');
+    img.src = src;
+    img.style.cssText = 'max-width: 90%; max-height: 90%; border-radius: 10px;';
+    
+    modal.appendChild(img);
+    document.body.appendChild(modal);
+}
+
+// 메시지 전송 (이미지 포함)
 async function sendMessage() {
     var input = document.getElementById('messageInput');
     var message = input.value.trim();
     
-    if (!message || !currentChatRoom) return;
+    // 이미지도 없고 메시지도 없으면 리턴
+    if (!message && !selectedImageFile) return;
+    if (!currentChatRoom) return;
     
     try {
+        var fileUrl = null;
+        var messageType = 'text';
+        
+        // 이미지가 있으면 먼저 업로드
+        if (selectedImageFile) {
+            fileUrl = await uploadAndSendImage();
+            if (fileUrl) {
+                messageType = 'image';
+                // 이미지만 보내는 경우 메시지는 빈 문자열
+                if (!message) message = '[이미지]';
+            } else {
+                return; // 업로드 실패시 중단
+            }
+        }
+        
         await apiRequest('/chat/rooms/' + currentChatRoom + '/messages', {
             method: 'POST',
-            body: JSON.stringify({ message: message })
+            body: JSON.stringify({ 
+                message: message,
+                messageType: messageType,
+                fileUrl: fileUrl
+            })
         });
         
+        // 입력 초기화
         input.value = '';
+        cancelImageUpload();
         
         // 메시지 새로고침
         await loadMessages(currentChatRoom);
@@ -3160,3 +3205,70 @@ async function createNewChat() {
 }
 
 console.log('✅ 채팅 기능 로드 완료');
+
+
+// ========== 이미지 업로드 기능 ==========
+
+var selectedImageFile = null;
+
+// 이미지 미리보기
+function previewImage(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    
+    // 파일 크기 체크 (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+        alert('이미지 크기는 10MB 이하만 가능합니다.');
+        event.target.value = '';
+        return;
+    }
+    
+    selectedImageFile = file;
+    
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('imagePreview').src = e.target.result;
+        document.getElementById('imagePreviewArea').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+// 이미지 업로드 취소
+function cancelImageUpload() {
+    selectedImageFile = null;
+    document.getElementById('imageInput').value = '';
+    document.getElementById('imagePreviewArea').style.display = 'none';
+    document.getElementById('imagePreview').src = '';
+}
+
+// 이미지 업로드 및 메시지 전송
+async function uploadAndSendImage() {
+    if (!selectedImageFile || !currentChatRoom) return null;
+    
+    try {
+        var formData = new FormData();
+        formData.append('image', selectedImageFile);
+        
+        var token = localStorage.getItem('token');
+        var response = await fetch(API_BASE_URL + '/chat/upload', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            },
+            body: formData
+        });
+        
+        var result = await response.json();
+        
+        if (result.success) {
+            return result.data.fileUrl;
+        } else {
+            alert('이미지 업로드 실패: ' + result.message);
+            return null;
+        }
+    } catch (error) {
+        console.error('이미지 업로드 오류:', error);
+        alert('이미지 업로드 중 오류가 발생했습니다.');
+        return null;
+    }
+}
