@@ -1226,3 +1226,139 @@ body.modal-open {
         min-width: 600px !important;
     }
 }
+
+
+/* ========== 모바일 햄버거 메뉴 ========== */
+
+/* 햄버거 버튼 (기본 숨김) */
+.hamburger-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    z-index: 1001;
+}
+
+.hamburger-btn span {
+    display: block;
+    width: 25px;
+    height: 3px;
+    background: #333;
+    margin: 3px 0;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+/* 햄버거 버튼 애니메이션 (열린 상태) */
+.hamburger-btn.active span:nth-child(1) {
+    transform: rotate(45deg) translate(6px, 6px);
+}
+
+.hamburger-btn.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger-btn.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(6px, -6px);
+}
+
+/* 모바일 메뉴 오버레이 */
+.mobile-menu-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+.mobile-menu-overlay.active {
+    display: block;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+    /* 햄버거 버튼 표시 */
+    .hamburger-btn {
+        display: flex;
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    
+    /* nav 컨테이너 */
+    .nav {
+        position: relative;
+        padding: 10px 15px;
+    }
+    
+    /* 메뉴 숨김 (슬라이드 메뉴로 변경) */
+    .nav-menu {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 280px;
+        height: 100vh;
+        background: white;
+        flex-direction: column;
+        padding: 70px 0 20px 0;
+        margin: 0;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        transition: left 0.3s ease;
+        z-index: 1000;
+        overflow-y: auto;
+    }
+    
+    .nav-menu.active {
+        left: 0;
+    }
+    
+    /* 메뉴 아이템 스타일 */
+    .nav-menu .nav-item {
+        padding: 15px 25px;
+        border-bottom: 1px solid #eee;
+        font-size: 16px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .nav-menu .nav-item:hover,
+    .nav-menu .nav-item.active {
+        background: #f0f7ff;
+        color: #0066cc;
+    }
+    
+    /* 헤더 조정 */
+    .header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 15px 60px;
+        position: relative;
+    }
+    
+    .header .logo {
+        font-size: 18px;
+    }
+    
+    /* 사용자 정보 */
+    .user-info {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    
+    .user-info .user-name {
+        display: none;
+    }
+}

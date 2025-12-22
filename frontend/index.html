@@ -40,16 +40,26 @@ button[onclick*="downloadExcel"]:hover {
     </div>
 
     <nav class="nav" id="mainNav">
-        <ul class="nav-menu">
-            <li class="nav-item active" id="navList">자산 조회</li>
-            <li class="nav-item" id="navRegister">자산 등록</li>
-            <li class="nav-item" id="navDashboard">현황</li>
-            <li class="nav-item" id="navChat">💬 채팅</li>
-          <li class="nav-item" id="navFeed">📸 피드</li>
-            <li class="nav-item" id="navSettings">페이지 관리</li>
-            <li class="nav-item" id="navAdmin">관리자</li>
-        </ul>
-    </nav>
+    <!-- 햄버거 버튼 (모바일용) -->
+    <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMobileMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+    
+    <!-- 모바일 메뉴 오버레이 -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu()"></div>
+    
+    <ul class="nav-menu" id="navMenu">
+        <li class="nav-item active" id="navList" onclick="closeMobileMenu()">자산 조회</li>
+        <li class="nav-item" id="navRegister" onclick="closeMobileMenu()">자산 등록</li>
+        <li class="nav-item" id="navDashboard" onclick="closeMobileMenu()">현황</li>
+        <li class="nav-item" id="navChat" onclick="closeMobileMenu()">💬 채팅</li>
+        <li class="nav-item" id="navFeed" onclick="closeMobileMenu()">📸 피드</li>
+        <li class="nav-item" id="navSettings" onclick="closeMobileMenu()">페이지 관리</li>
+        <li class="nav-item" id="navAdmin" onclick="closeMobileMenu()">관리자</li>
+    </ul>
+</nav>
 
     <div id="loginPage" class="login-container">
         <div class="login-box">

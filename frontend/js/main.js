@@ -3707,3 +3707,45 @@ async function deleteComment(commentId) {
 }
 
 console.log('✅ 피드 기능 로드 완료');
+
+
+// ========== 모바일 메뉴 기능 ==========
+
+// 모바일 메뉴 토글
+function toggleMobileMenu() {
+    var hamburger = document.getElementById('hamburgerBtn');
+    var navMenu = document.getElementById('navMenu');
+    var overlay = document.getElementById('mobileMenuOverlay');
+    
+    hamburger.classList.toggle('active');
+    navMenu.classList.toggle('active');
+    overlay.classList.toggle('active');
+    
+    // body 스크롤 방지
+    if (navMenu.classList.contains('active')) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+}
+
+// 모바일 메뉴 닫기
+function closeMobileMenu() {
+    var hamburger = document.getElementById('hamburgerBtn');
+    var navMenu = document.getElementById('navMenu');
+    var overlay = document.getElementById('mobileMenuOverlay');
+    
+    if (hamburger) hamburger.classList.remove('active');
+    if (navMenu) navMenu.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// 화면 크기 변경 시 메뉴 초기화
+window.addEventListener('resize', function() {
+    if (window.innerWidth > 768) {
+        closeMobileMenu();
+    }
+});
+
+console.log('✅ 모바일 메뉴 기능 로드 완료');
