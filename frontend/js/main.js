@@ -5,7 +5,7 @@ var currentPage = 1;
 var itemsPerPage = 10;
 var sessionTimeout = null;
 var SESSION_DURATION = 30 * 60 * 1000; // 30분
-var API_BASE_URL = 'http://localhost:5000/api';
+var API_BASE_URL = 'https://asset-manager-production-4fcb.up.railway.app/api';
 var authToken = null;
 
 // ========== API 호출 헬퍼 함수 ==========
