@@ -1207,173 +1207,285 @@ body.modal-open {
     }
 }
 
-/* ========== 관리자 페이지 스타일 ========== */
-.user-list {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    overflow: hidden;
+/* ========== 모바일 반응형 채팅 ========== */
+@media (max-width: 768px) {
+    .chat-container {
+        grid-template-columns: 1fr !important;
+        gap: 0 !important;
+    }
+    
+    .chat-room-list-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 10;
+        border-radius: 0 !important;
+        height: 100% !important;
+    }
+    
+    .chat-area-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
+        border-radius: 0 !important;
+        display: none !important;
+        height: 100% !important;
+    }
+    
+    .chat-area-container.mobile-active {
+        display: flex !important;
+    }
+    
+    .chat-room-list-container.mobile-hidden {
+        display: none !important;
+    }
+    
+    #backToChatList {
+        display: block !important;
+    }
+    
+    #chatPage .chat-container {
+        position: relative;
+        height: calc(100vh - 180px) !important;
+    }
+    
+    #chatPage .page-title {
+        display: none;
+    }
 }
 
-.user-item {
-    display: flex;
-    justify-content: space-between;
+/* ========== 모바일 반응형 검색창 ========== */
+@media (max-width: 768px) {
+    .search-bar-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    #searchField {
+        width: 100% !important;
+    }
+    
+    .search-buttons {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+    }
+    
+    .search-buttons button {
+        width: 100% !important;
+        padding: 12px 10px !important;
+    }
+    
+    #assetTableContainer {
+        overflow-x: auto !important;
+    }
+    
+    #assetTable {
+        min-width: 600px !important;
+    }
+}
+
+/* ========== 모바일 헤더 & 햄버거 메뉴 ========== */
+.hamburger-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    padding: 20px 25px;
-    border-bottom: 1px solid #e0e0e0;
+    width: 44px;
+    height: 44px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    z-index: 1001;
+    border-radius: 8px;
     transition: background 0.2s;
 }
 
-.user-item:last-child {
-    border-bottom: none;
+.hamburger-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
-.user-item:hover {
-    background: #f8f9fa;
+.hamburger-btn span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: white;
+    margin: 3px 0;
+    border-radius: 2px;
+    transition: all 0.3s ease;
 }
 
-.user-info-detail {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
+.hamburger-btn.active span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
 }
 
-.user-info-detail .user-name {
-    font-size: 16px;
-    font-weight: 600;
-    color: #333;
+.hamburger-btn.active span:nth-child(2) {
+    opacity: 0;
 }
 
-.user-info-detail .user-email {
-    font-size: 14px;
-    color: #666;
+.hamburger-btn.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
 }
 
-.user-info-detail .user-date {
-    font-size: 12px;
-    color: #999;
+.mobile-menu-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
-.user-actions {
-    display: flex;
-    gap: 10px;
+.mobile-menu-overlay.active {
+    display: block;
+    opacity: 1;
 }
 
-.btn-permission {
-    padding: 8px 16px;
-    background: #0066cc;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s;
-}
-
-.btn-permission:hover {
-    background: #0052a3;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.3);
-}
-
-.btn-delete-user {
-    padding: 8px 16px;
-    background: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s;
-}
-
-.btn-delete-user:hover {
-    background: #c82333;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
-}
-
-/* 권한 설정 모달 스타일 */
-.permission-item {
-    margin-bottom: 15px;
-}
-
-.permission-label {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 2px solid transparent;
-}
-
-.permission-label:hover {
-    background: #e9ecef;
-    border-color: #0066cc;
-}
-
-.permission-checkbox {
-    width: 20px;
-    height: 20px;
-    margin-top: 2px;
-    cursor: pointer;
-}
-
-.permission-text {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.permission-text strong {
-    font-size: 15px;
-    color: #333;
-}
-
-.permission-text small {
-    font-size: 13px;
-    color: #666;
-}
-
-.btn-cancel {
-    padding: 12px 30px;
-    background: #6c757d;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.2s;
-}
-
-.btn-cancel:hover {
-    background: #5a6268;
-}
-
-/* 모바일 반응형 관리자 */
 @media (max-width: 768px) {
-    .user-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
-        padding: 15px;
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 15px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
     }
     
-    .user-actions {
-        width: 100%;
+    .hamburger-btn {
+        display: flex;
+        order: 1;
+        flex-shrink: 0;
     }
     
-    .user-actions button {
+    .logo {
+        order: 2;
+        font-size: 16px !important;
+        text-align: center;
         flex: 1;
+        margin: 0 10px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
-    .permission-label {
-        padding: 12px;
+    .user-info {
+        order: 3;
+        display: flex !important;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+    
+    .user-info .user-name {
+        display: none !important;
+    }
+    
+    .user-info .btn-logout {
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+        border-radius: 6px !important;
+        white-space: nowrap;
+    }
+    
+    .nav {
+        padding: 0;
+    }
+    
+    .nav-menu {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 280px;
+        height: 100vh;
+        background: white;
+        flex-direction: column;
+        padding: 0;
+        margin: 0;
+        box-shadow: 2px 0 15px rgba(0, 0, 0, 0.15);
+        transition: left 0.3s ease;
+        z-index: 1000;
+        overflow-y: auto;
+    }
+    
+    .nav-menu.active {
+        left: 0;
+    }
+    
+    .nav-menu::before {
+        content: '메뉴';
+        display: block;
+        padding: 20px 25px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #002c5f;
+        border-bottom: 1px solid #eee;
+        background: #f8f9fa;
+    }
+    
+    .nav-menu .nav-item {
+        padding: 16px 25px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 15px;
+        width: 100%;
+        box-sizing: border-box;
+        color: #333;
+        transition: all 0.2s;
+        border-left: 4px solid transparent;
+    }
+    
+    .nav-menu .nav-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .nav-menu .nav-item.active {
+        background: #e3f2fd;
+        color: #0066cc;
+        font-weight: 600;
+        border-left-color: #0066cc;
+    }
+    
+    .page-title {
+        font-size: 20px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .main-content {
+        padding: 15px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .header {
+        padding: 10px 12px;
+    }
+    
+    .logo {
+        font-size: 14px !important;
+    }
+    
+    .user-info .btn-logout {
+        padding: 6px 10px !important;
+        font-size: 11px !important;
+    }
+    
+    .hamburger-btn {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .hamburger-btn span {
+        width: 20px;
     }
 }
