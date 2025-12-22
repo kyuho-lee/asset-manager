@@ -3249,7 +3249,7 @@ async function uploadAndSendImage() {
         var formData = new FormData();
         formData.append('image', selectedImageFile);
         
-        var token = localStorage.getItem('token');
+        var token = localStorage.getItem('authToken');
         var response = await fetch(API_BASE_URL + '/chat/upload', {
             method: 'POST',
             headers: {
