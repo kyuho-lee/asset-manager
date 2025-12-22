@@ -1576,3 +1576,42 @@ body.modal-open {
         justify-content: center;
     }
 }
+
+
+/* ========== 모바일 반응형 자산 테이블 ========== */
+@media (max-width: 768px) {
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -15px;
+        padding: 0 15px;
+    }
+    
+    #assetTable {
+        min-width: 800px;
+        font-size: 13px;
+    }
+    
+    #assetTable th,
+    #assetTable td {
+        padding: 10px 8px;
+        white-space: nowrap;
+    }
+    
+    .pagination-container {
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+    }
+    
+    .pagination-buttons {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .pagination-btn {
+        padding: 6px 10px;
+        font-size: 13px;
+        min-width: 32px;
+    }
+}
