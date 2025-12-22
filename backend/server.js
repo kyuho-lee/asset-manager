@@ -29,12 +29,14 @@ app.use((req, res, next) => {
 const authRoutes = require('./routes/auth');
 const assetsRoutes = require('./routes/assets');
 const usersRoutes = require('./routes/users');
-const settingsRoutes = require('./routes/settings');  // 이 줄 추가
+const settingsRoutes = require('./routes/settings');  
+const chatRoutes = require('./routes/chat');  // 채팅 추가
 
 app.use('/api/auth', authRoutes);
 app.use('/api/assets', assetsRoutes);
 app.use('/api/users', usersRoutes);
-app.use('/api/settings', settingsRoutes);  // 이 줄 추가
+app.use('/api/settings', settingsRoutes);  
+app.use('/api/chat', chatRoutes);  // 채팅 추가
 
 // ========== 기본 라우트 ==========
 

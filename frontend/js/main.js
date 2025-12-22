@@ -557,18 +557,25 @@ async function showPage(page) {
             navItems[2].classList.add('active');
             await loadDashboard();
         }
+    } else if (page === 'chat') {
+        var chatPage = document.getElementById('chatPage');
+        if (chatPage) {
+            chatPage.classList.add('active');
+            navItems[3].classList.add('active');
+            await loadChatRooms();
+        }
     } else if (page === 'settings') {
         var settingsPage = document.getElementById('settingsPage');
         if (settingsPage) {
             settingsPage.classList.add('active');
-            navItems[3].classList.add('active');
+            navItems[4].classList.add('active');
             await renderFieldSettings();
-        }
-    } else if (page === 'admin') {
+        }      
+    }  else if (page === 'admin') {
         var adminPage = document.getElementById('adminPage');
         if (adminPage) {
             adminPage.classList.add('active');
-            navItems[4].classList.add('active');
+            navItems[5].classList.add('active');
             await loadUsers();
         }
     }
@@ -2834,3 +2841,322 @@ async function renderAssetTable(assets) {
 }
 
 console.log('✅ 검색 기능 로드 완료');
+
+// ========== 채팅 기능 ==========
+
+var currentChatRoom = null;
+var chatType = 'direct';
+var selectedUsers = [];
+
+// 채팅 메뉴 클릭 이벤트
+document.getElementById('navChat').addEventListener('click', function() {
+    showPage('chat');
+    loadChatRooms();
+});
+
+// 페이지 표시 함수에 chat 추가 (기존 showPage 함수 수정 필요)
+function showChatPage() {
+    document.getElementById('chatPage').style.display = 'block';
+    loadChatRooms();
+}
+
+// 채팅방 목록 로드
+async function loadChatRooms() {
+    try {
+        var response = await apiRequest('/chat/rooms', { method: 'GET' });
+        var rooms = response.data || [];
+        
+        var container = document.getElementById('chatRoomList');
+        
+        if (rooms.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">채팅방이 없습니다.<br>새 채팅을 시작해보세요!</p>';
+            return;
+        }
+        
+        var html = '';
+        for (var i = 0; i < rooms.length; i++) {
+            var room = rooms[i];
+            var lastMessage = room.last_message || '새로운 채팅방';
+            var unreadBadge = room.unread_count > 0 ? 
+                '<span style="background: #ff4444; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 5px;">' + room.unread_count + '</span>' : '';
+            
+            var timeStr = '';
+            if (room.last_message_time) {
+                var date = new Date(room.last_message_time);
+                timeStr = date.getHours() + ':' + String(date.getMinutes()).padStart(2, '0');
+            }
+            
+            html += '<div class="chat-room-item" onclick="openChatRoom(' + room.id + ', \'' + (room.name || '').replace(/'/g, "\\'") + '\')" ';
+            html += 'style="padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;"';
+            html += 'onmouseover="this.style.background=\'#f5f5f5\'" onmouseout="this.style.background=\'white\'">';
+            html += '<div style="display: flex; justify-content: space-between; align-items: center;">';
+            html += '<span style="font-weight: 600;">' + (room.type === 'group' ? '👥 ' : '👤 ') + room.name + '</span>';
+            html += '<span style="font-size: 12px; color: #999;">' + timeStr + '</span>';
+            html += '</div>';
+            html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">';
+            html += '<span style="font-size: 13px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">' + lastMessage + '</span>';
+            html += unreadBadge;
+            html += '</div>';
+            html += '</div>';
+        }
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('채팅방 목록 로드 오류:', error);
+    }
+}
+
+// 채팅방 열기
+async function openChatRoom(roomId, roomName) {
+    currentChatRoom = roomId;
+    
+    // 헤더 표시
+    document.getElementById('chatHeader').style.display = 'block';
+    document.getElementById('chatPartnerName').textContent = roomName;
+    document.getElementById('chatInputArea').style.display = 'block';
+    
+    // 메시지 로드
+    await loadMessages(roomId);
+    
+    // 채팅방 목록 새로고침 (읽음 처리 반영)
+    loadChatRooms();
+}
+
+// 메시지 로드
+async function loadMessages(roomId) {
+    try {
+        var response = await apiRequest('/chat/rooms/' + roomId + '/messages', { method: 'GET' });
+        var messages = response.data || [];
+        
+        var container = document.getElementById('chatMessages');
+        
+        if (messages.length === 0) {
+            container.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #999;"><p>아직 메시지가 없습니다.<br>첫 메시지를 보내보세요!</p></div>';
+            return;
+        }
+        
+        var html = '';
+        for (var i = 0; i < messages.length; i++) {
+            var msg = messages[i];
+            var isMe = msg.sender_id === currentUser.id;
+            var time = new Date(msg.created_at);
+            var timeStr = time.getHours() + ':' + String(time.getMinutes()).padStart(2, '0');
+            
+            if (isMe) {
+                // 내 메시지 (오른쪽)
+                html += '<div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">';
+                html += '<div style="display: flex; align-items: flex-end; gap: 8px;">';
+                html += '<span style="font-size: 11px; color: #999;">' + timeStr + '</span>';
+                html += '<div style="background: #0066cc; color: white; padding: 10px 15px; border-radius: 18px 18px 4px 18px; max-width: 300px; word-break: break-word;">';
+                html += msg.message;
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+            } else {
+                // 상대방 메시지 (왼쪽)
+                html += '<div style="display: flex; justify-content: flex-start; margin-bottom: 15px;">';
+                html += '<div>';
+                html += '<div style="font-size: 12px; color: #666; margin-bottom: 5px;">' + msg.sender_name + '</div>';
+                html += '<div style="display: flex; align-items: flex-end; gap: 8px;">';
+                html += '<div style="background: white; padding: 10px 15px; border-radius: 18px 18px 18px 4px; max-width: 300px; word-break: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">';
+                html += msg.message;
+                html += '</div>';
+                html += '<span style="font-size: 11px; color: #999;">' + timeStr + '</span>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+            }
+        }
+        
+        container.innerHTML = html;
+        
+        // 스크롤 맨 아래로
+        container.scrollTop = container.scrollHeight;
+        
+    } catch (error) {
+        console.error('메시지 로드 오류:', error);
+    }
+}
+
+// 메시지 전송
+async function sendMessage() {
+    var input = document.getElementById('messageInput');
+    var message = input.value.trim();
+    
+    if (!message || !currentChatRoom) return;
+    
+    try {
+        await apiRequest('/chat/rooms/' + currentChatRoom + '/messages', {
+            method: 'POST',
+            body: JSON.stringify({ message: message })
+        });
+        
+        input.value = '';
+        
+        // 메시지 새로고침
+        await loadMessages(currentChatRoom);
+        
+        // 채팅방 목록도 새로고침
+        loadChatRooms();
+        
+    } catch (error) {
+        console.error('메시지 전송 오류:', error);
+        alert('메시지 전송에 실패했습니다.');
+    }
+}
+
+// 새 채팅 모달 열기
+async function openNewChatModal() {
+    document.getElementById('newChatModal').classList.add('active');
+    document.body.classList.add('modal-open');
+    
+    chatType = 'direct';
+    selectedUsers = [];
+    selectChatType('direct');
+    
+    // 사용자 목록 로드
+    await loadUserList();
+}
+
+// 새 채팅 모달 닫기
+function closeNewChatModal() {
+    document.getElementById('newChatModal').classList.remove('active');
+    document.body.classList.remove('modal-open');
+}
+
+// 채팅 유형 선택
+function selectChatType(type) {
+    chatType = type;
+    selectedUsers = [];
+    
+    var btnDirect = document.getElementById('btnDirectChat');
+    var btnGroup = document.getElementById('btnGroupChat');
+    var groupNameArea = document.getElementById('groupNameArea');
+    
+    if (type === 'direct') {
+        btnDirect.style.background = '#e3f2fd';
+        btnDirect.style.borderColor = '#0066cc';
+        btnDirect.style.color = '#0066cc';
+        btnGroup.style.background = 'white';
+        btnGroup.style.borderColor = '#ddd';
+        btnGroup.style.color = '#666';
+        groupNameArea.style.display = 'none';
+    } else {
+        btnGroup.style.background = '#e3f2fd';
+        btnGroup.style.borderColor = '#0066cc';
+        btnGroup.style.color = '#0066cc';
+        btnDirect.style.background = 'white';
+        btnDirect.style.borderColor = '#ddd';
+        btnDirect.style.color = '#666';
+        groupNameArea.style.display = 'block';
+    }
+    
+    // 사용자 목록 다시 렌더링
+    renderUserList();
+}
+
+// 사용자 목록 로드
+var allUsers = [];
+async function loadUserList() {
+    try {
+        var response = await apiRequest('/chat/users', { method: 'GET' });
+        allUsers = response.data || [];
+        renderUserList();
+    } catch (error) {
+        console.error('사용자 목록 로드 오류:', error);
+    }
+}
+
+// 사용자 목록 렌더링
+function renderUserList() {
+    var container = document.getElementById('userSelectList');
+    
+    if (allUsers.length === 0) {
+        container.innerHTML = '<p style="text-align: center; padding: 20px; color: #999;">다른 사용자가 없습니다.</p>';
+        return;
+    }
+    
+    var html = '';
+    for (var i = 0; i < allUsers.length; i++) {
+        var user = allUsers[i];
+        var isSelected = selectedUsers.indexOf(user.id) > -1;
+        var checkType = chatType === 'direct' ? 'radio' : 'checkbox';
+        
+        html += '<label style="display: flex; align-items: center; padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #eee; transition: background 0.2s;" ';
+        html += 'onmouseover="this.style.background=\'#f5f5f5\'" onmouseout="this.style.background=\'white\'">';
+        html += '<input type="' + checkType + '" name="chatUser" value="' + user.id + '" ';
+        html += 'onchange="toggleUserSelection(' + user.id + ')" ';
+        if (isSelected) html += 'checked ';
+        html += 'style="margin-right: 12px; width: 18px; height: 18px;">';
+        html += '<div>';
+        html += '<div style="font-weight: 600;">' + user.name + '</div>';
+        html += '<div style="font-size: 12px; color: #999;">' + user.email + '</div>';
+        html += '</div>';
+        html += '</label>';
+    }
+    
+    container.innerHTML = html;
+}
+
+// 사용자 선택 토글
+function toggleUserSelection(userId) {
+    if (chatType === 'direct') {
+        selectedUsers = [userId];
+    } else {
+        var index = selectedUsers.indexOf(userId);
+        if (index > -1) {
+            selectedUsers.splice(index, 1);
+        } else {
+            selectedUsers.push(userId);
+        }
+    }
+}
+
+// 새 채팅 생성
+async function createNewChat() {
+    if (selectedUsers.length === 0) {
+        alert('대화 상대를 선택해주세요.');
+        return;
+    }
+    
+    try {
+        var response;
+        
+        if (chatType === 'direct') {
+            response = await apiRequest('/chat/rooms/direct', {
+                method: 'POST',
+                body: JSON.stringify({ partnerId: selectedUsers[0] })
+            });
+        } else {
+            var groupName = document.getElementById('groupNameInput').value.trim();
+            if (!groupName) {
+                alert('그룹 이름을 입력해주세요.');
+                return;
+            }
+            response = await apiRequest('/chat/rooms/group', {
+                method: 'POST',
+                body: JSON.stringify({ name: groupName, participantIds: selectedUsers })
+            });
+        }
+        
+        closeNewChatModal();
+        
+        // 채팅방 목록 새로고침
+        await loadChatRooms();
+        
+        // 새로 생성된 채팅방 열기
+        if (response.data && response.data.roomId) {
+            var roomName = chatType === 'direct' ? 
+                allUsers.find(function(u) { return u.id === selectedUsers[0]; }).name :
+                document.getElementById('groupNameInput').value;
+            openChatRoom(response.data.roomId, roomName);
+        }
+        
+    } catch (error) {
+        console.error('채팅방 생성 오류:', error);
+        alert('채팅방 생성에 실패했습니다.');
+    }
+}
+
+console.log('✅ 채팅 기능 로드 완료');
