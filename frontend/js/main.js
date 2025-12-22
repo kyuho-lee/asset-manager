@@ -2987,18 +2987,53 @@ async function loadMessages(roomId) {
     }
 }
 
-// 이미지 크게 보기
+// 이미지 크게 보기 (다운로드 버튼 포함)
 function openImageModal(src) {
     var modal = document.createElement('div');
-    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 10000; cursor: pointer;';
-    modal.onclick = function() { document.body.removeChild(modal); };
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000;';
     
+    // 닫기 버튼
+    var closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '✕ 닫기';
+    closeBtn.style.cssText = 'position: absolute; top: 20px; right: 20px; padding: 10px 20px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;';
+    closeBtn.onclick = function() { document.body.removeChild(modal); };
+    
+    // 이미지
     var img = document.createElement('img');
     img.src = src;
-    img.style.cssText = 'max-width: 90%; max-height: 90%; border-radius: 10px;';
+    img.style.cssText = 'max-width: 85%; max-height: 75%; border-radius: 10px;';
     
+    // 다운로드 버튼
+    var downloadBtn = document.createElement('button');
+    downloadBtn.innerHTML = '📥 다운로드';
+    downloadBtn.style.cssText = 'margin-top: 20px; padding: 12px 30px; background: #0066cc; color: white; border: none; border-radius: 25px; cursor: pointer; font-size: 16px; font-weight: 600;';
+    downloadBtn.onclick = function(e) {
+        e.stopPropagation();
+        downloadImage(src);
+    };
+    
+    // 배경 클릭 시 닫기
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    };
+    
+    modal.appendChild(closeBtn);
     modal.appendChild(img);
+    modal.appendChild(downloadBtn);
     document.body.appendChild(modal);
+}
+
+// 이미지 다운로드
+function downloadImage(src) {
+    var link = document.createElement('a');
+    link.href = src;
+    link.download = 'chat-image-' + Date.now() + '.jpg';
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // 메시지 전송 (이미지 포함)
