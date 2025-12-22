@@ -462,12 +462,14 @@ body {
     gap: 10px;
 }
 
-.asset-table {
+.asset-table,
+#assetTable {
     width: 100%;
     border-collapse: collapse;
 }
 
-.asset-table th {
+.asset-table th,
+#assetTable th {
     background: #002c5f;
     color: white;
     padding: 15px;
@@ -475,12 +477,14 @@ body {
     font-weight: 600;
 }
 
-.asset-table td {
+.asset-table td,
+#assetTable td {
     padding: 15px;
     border-bottom: 1px solid #e0e0e0;
 }
 
-.asset-table tr:hover {
+.asset-table tr:hover,
+#assetTable tr:hover {
     background: #f8f8f8;
 }
 
