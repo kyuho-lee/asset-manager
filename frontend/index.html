@@ -172,18 +172,18 @@ button[onclick*="downloadExcel"]:hover {
         </div>
         
         <!-- 검색바 -->
-        <div style="background: white; border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <div style="display: grid; grid-template-columns: 200px 1fr auto; gap: 10px; align-items: center;">
+        <div class="search-bar-container" style="background: white; border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="search-bar-grid" style="display: grid; grid-template-columns: 200px 1fr auto; gap: 10px; align-items: center;">
                 <select id="searchField" style="padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 6px; font-size: 14px; color: #333; cursor: pointer; background: white; transition: all 0.2s;">
                     <option value="">전체</option>
                 </select>
                 <div style="position: relative;">
                     <input type="text" id="searchInput" placeholder="검색어를 입력하세요..." 
-                           style="width: 100%; padding: 10px 40px 10px 15px; border: 1.5px solid #ddd; border-radius: 6px; font-size: 14px; transition: all 0.2s;"
-                           onkeypress="if(event.key === 'Enter') searchAssets()">
+                        style="width: 100%; padding: 10px 40px 10px 15px; border: 1.5px solid #ddd; border-radius: 6px; font-size: 14px; transition: all 0.2s; box-sizing: border-box;"
+                        onkeypress="if(event.key === 'Enter') searchAssets()">
                     <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #999; font-size: 18px; pointer-events: none;">🔍</span>
                 </div>
-                <div style="display: flex; gap: 8px;">
+                <div class="search-buttons" style="display: flex; gap: 8px;">
                     <button onclick="searchAssets()" style="padding: 10px 24px; background: #0066cc; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
                         검색
                     </button>
@@ -193,6 +193,8 @@ button[onclick*="downloadExcel"]:hover {
                 </div>
             </div>
         </div>
+
+
         <div class="table-container">
             <table id="assetTable">
                 <thead>

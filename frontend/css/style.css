@@ -1192,49 +1192,29 @@ body.modal-open {
         display: none;
     }
 }
-
 /* ========== 모바일 반응형 자산 조회 검색창 ========== */
 @media (max-width: 768px) {
-    /* 검색창 컨테이너 */
-    .search-container,
-    #listPage .search-bar,
-    #listPage > div:nth-child(2) {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 10px !important;
-        padding: 15px !important;
+    /* 검색바 그리드 → 세로 배치 */
+    .search-bar-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
     }
     
-    /* 검색 입력 필드들 */
-    .search-container select,
-    .search-container input,
-    .search-bar select,
-    .search-bar input,
-    #searchField,
-    #searchInput {
+    /* 검색 필드 선택 */
+    #searchField {
         width: 100% !important;
-        min-width: unset !important;
-        box-sizing: border-box !important;
     }
     
     /* 검색 버튼 영역 */
-    .search-container button,
-    .search-bar button {
-        width: 100% !important;
-        padding: 12px !important;
-    }
-    
-    /* 엑셀 버튼 영역 */
-    .excel-buttons,
-    #listPage .button-group {
-        display: flex !important;
-        flex-direction: column !important;
+    .search-buttons {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
         gap: 10px !important;
     }
     
-    .excel-buttons button,
-    #listPage .button-group button {
+    .search-buttons button {
         width: 100% !important;
+        padding: 12px 10px !important;
     }
     
     /* 테이블 반응형 */
@@ -1244,10 +1224,5 @@ body.modal-open {
     
     #assetTable {
         min-width: 600px !important;
-    }
-    
-    /* 자산 조회 제목 */
-    #listPage .page-title {
-        font-size: 20px !important;
     }
 }
