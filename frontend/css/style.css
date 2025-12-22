@@ -1615,3 +1615,48 @@ body.modal-open {
         min-width: 32px;
     }
 }
+
+
+/* ========== 테이블 컬럼 리사이즈 & 드래그 ========== */
+#assetTable th {
+    position: relative;
+    user-select: none;
+    cursor: grab;
+}
+
+#assetTable th:active {
+    cursor: grabbing;
+}
+
+#assetTable th.dragging {
+    opacity: 0.5;
+    background: #e3f2fd;
+}
+
+#assetTable th.drag-over {
+    border-left: 3px solid #0066cc;
+}
+
+.resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    background: transparent;
+    z-index: 10;
+}
+
+.resize-handle:hover {
+    background: rgba(0, 102, 204, 0.3);
+}
+
+.resize-handle:active {
+    background: rgba(0, 102, 204, 0.5);
+}
+
+/* 리사이즈 중 시각적 피드백 */
+#assetTable th.resizing {
+    border-right: 2px solid #0066cc;
+}
