@@ -1192,3 +1192,62 @@ body.modal-open {
         display: none;
     }
 }
+
+/* ========== 모바일 반응형 자산 조회 검색창 ========== */
+@media (max-width: 768px) {
+    /* 검색창 컨테이너 */
+    .search-container,
+    #listPage .search-bar,
+    #listPage > div:nth-child(2) {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+        padding: 15px !important;
+    }
+    
+    /* 검색 입력 필드들 */
+    .search-container select,
+    .search-container input,
+    .search-bar select,
+    .search-bar input,
+    #searchField,
+    #searchInput {
+        width: 100% !important;
+        min-width: unset !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* 검색 버튼 영역 */
+    .search-container button,
+    .search-bar button {
+        width: 100% !important;
+        padding: 12px !important;
+    }
+    
+    /* 엑셀 버튼 영역 */
+    .excel-buttons,
+    #listPage .button-group {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .excel-buttons button,
+    #listPage .button-group button {
+        width: 100% !important;
+    }
+    
+    /* 테이블 반응형 */
+    #assetTableContainer {
+        overflow-x: auto !important;
+    }
+    
+    #assetTable {
+        min-width: 600px !important;
+    }
+    
+    /* 자산 조회 제목 */
+    #listPage .page-title {
+        font-size: 20px !important;
+    }
+}
