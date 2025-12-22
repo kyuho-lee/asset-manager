@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 // 모든 채팅 API는 로그인 필요
 router.use(auth);
