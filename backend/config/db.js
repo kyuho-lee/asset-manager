@@ -4,9 +4,10 @@ require('dotenv').config();
 // MySQL 연결 풀 생성
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 3306,
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'asset_management',
+    database: process.env.DB_NAME || 'asset_manager',
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
@@ -14,15 +15,14 @@ const pool = mysql.createPool({
     keepAliveInitialDelay: 0
 });
 
-// 연결 테스트
+// 연결 테스트 (한 번만)
 pool.getConnection()
     .then(connection => {
-        console.log('✅ MySQL 데이터베이스 연결 성공!');
+        console.log('✅ MySQL 연결 성공!');
         connection.release();
     })
     .catch(err => {
         console.error('❌ MySQL 연결 실패:', err.message);
-        console.error('데이터베이스 설정을 확인해주세요.');
     });
 
 module.exports = pool;

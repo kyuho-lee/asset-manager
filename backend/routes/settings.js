@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/database');
+const db = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 
 // ============= 컬럼 설정 관리 =============
