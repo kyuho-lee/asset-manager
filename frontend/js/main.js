@@ -2923,10 +2923,23 @@ async function openChatRoom(roomId, roomName) {
     document.getElementById('chatPartnerName').textContent = roomName;
     document.getElementById('chatInputArea').style.display = 'block';
     
+    // 모바일: 채팅 영역 표시
+    document.getElementById('chatAreaContainer').classList.add('mobile-active');
+    document.getElementById('chatRoomListContainer').classList.add('mobile-hidden');
+    
     // 메시지 로드
     await loadMessages(roomId);
     
     // 채팅방 목록 새로고침 (읽음 처리 반영)
+    loadChatRooms();
+}
+
+// 채팅방 목록으로 돌아가기 (모바일)
+function showChatRoomList() {
+    document.getElementById('chatAreaContainer').classList.remove('mobile-active');
+    document.getElementById('chatRoomListContainer').classList.remove('mobile-hidden');
+    
+    // 채팅방 목록 새로고침
     loadChatRooms();
 }
 

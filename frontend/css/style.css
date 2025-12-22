@@ -1140,3 +1140,55 @@ body.modal-open {
     cursor: pointer;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
+
+/* ========== 모바일 반응형 채팅 ========== */
+@media (max-width: 768px) {
+    .chat-container {
+        grid-template-columns: 1fr !important;
+        gap: 0 !important;
+    }
+    
+    .chat-room-list-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 10;
+        border-radius: 0 !important;
+        height: 100% !important;
+    }
+    
+    .chat-area-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
+        border-radius: 0 !important;
+        display: none !important;
+        height: 100% !important;
+    }
+    
+    .chat-area-container.mobile-active {
+        display: flex !important;
+    }
+    
+    .chat-room-list-container.mobile-hidden {
+        display: none !important;
+    }
+    
+    #backToChatList {
+        display: block !important;
+    }
+    
+    #chatPage .chat-container {
+        position: relative;
+        height: calc(100vh - 180px) !important;
+    }
+    
+    #chatPage .page-title {
+        display: none;
+    }
+}

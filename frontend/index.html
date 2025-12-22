@@ -377,12 +377,12 @@ button[onclick*="downloadExcel"]:hover {
 
     
     <!-- 채팅 페이지 -->
-    <div id="chatPage" class="main-content" >
+    <div id="chatPage" class="main-content">
         <h1 class="page-title">💬 채팅</h1>
         
-        <div style="display: grid; grid-template-columns: 300px 1fr; gap: 20px; height: calc(100vh - 200px);">
+        <div class="chat-container" style="display: grid; grid-template-columns: 300px 1fr; gap: 20px; height: calc(100vh - 200px);">
             <!-- 채팅방 목록 -->
-            <div style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column;">
+            <div class="chat-room-list-container" id="chatRoomListContainer" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column;">
                 <div style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="margin: 0; font-size: 16px;">대화 목록</h3>
                     <button onclick="openNewChatModal()" style="padding: 8px 12px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
@@ -395,10 +395,15 @@ button[onclick*="downloadExcel"]:hover {
             </div>
             
             <!-- 채팅 영역 -->
-            <div style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column;">
+            <div class="chat-area-container" id="chatAreaContainer" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column;">
                 <!-- 채팅 헤더 -->
                 <div id="chatHeader" style="padding: 15px 20px; border-bottom: 1px solid #eee; display: none;">
-                    <h3 id="chatPartnerName" style="margin: 0; font-size: 16px;">채팅 상대</h3>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <button id="backToChatList" onclick="showChatRoomList()" style="display: none; padding: 8px 12px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                            ← 뒤로
+                        </button>
+                        <h3 id="chatPartnerName" style="margin: 0; font-size: 16px;">채팅 상대</h3>
+                    </div>
                 </div>
                 
                 <!-- 메시지 영역 -->
