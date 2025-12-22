@@ -564,18 +564,25 @@ async function showPage(page) {
             navItems[3].classList.add('active');
             await loadChatRooms();
         }
+     } else if (page === 'feed') {
+        var feedPage = document.getElementById('feedPage');
+        if (feedPage) {
+            feedPage.classList.add('active');
+            navItems[4].classList.add('active');
+            await loadFeed();
+        }
     } else if (page === 'settings') {
         var settingsPage = document.getElementById('settingsPage');
         if (settingsPage) {
             settingsPage.classList.add('active');
-            navItems[4].classList.add('active');
+            navItems[5].classList.add('active');
             await renderFieldSettings();
         }      
     }  else if (page === 'admin') {
         var adminPage = document.getElementById('adminPage');
         if (adminPage) {
             adminPage.classList.add('active');
-            navItems[5].classList.add('active');
+            navItems[6].classList.add('active');
             await loadUsers();
         }
     }
@@ -3325,3 +3332,365 @@ async function uploadAndSendImage() {
         return null;
     }
 }
+
+
+// ========== 피드 기능 ==========
+
+var feedPage = 1;
+var feedLoading = false;
+var hasMorePosts = true;
+var selectedFeedImage = null;
+var currentCommentPostId = null;
+
+// 피드 메뉴 클릭 이벤트
+document.getElementById('navFeed').addEventListener('click', function() {
+    showPage('feed');
+});
+
+// 피드 로드
+async function loadFeed() {
+    feedPage = 1;
+    hasMorePosts = true;
+    
+    // 사용자 아바타 설정
+    if (currentUser && currentUser.name) {
+        document.getElementById('feedUserAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+    }
+    
+    await loadPosts(true);
+}
+
+// 게시물 로드
+async function loadPosts(reset) {
+    if (feedLoading) return;
+    feedLoading = true;
+    
+    try {
+        var response = await apiRequest('/feed?page=' + feedPage + '&limit=10', { method: 'GET' });
+        var posts = response.data || [];
+        var pagination = response.pagination;
+        
+        var container = document.getElementById('feedList');
+        
+        if (reset) {
+            container.innerHTML = '';
+        }
+        
+        if (posts.length === 0 && feedPage === 1) {
+            container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">아직 게시물이 없습니다.<br>첫 번째 게시물을 작성해보세요!</p>';
+            document.getElementById('loadMoreArea').style.display = 'none';
+            feedLoading = false;
+            return;
+        }
+        
+        for (var i = 0; i < posts.length; i++) {
+            var post = posts[i];
+            container.innerHTML += renderPostCard(post);
+        }
+        
+        // 더보기 버튼 표시 여부
+        if (pagination && feedPage < pagination.totalPages) {
+            document.getElementById('loadMoreArea').style.display = 'block';
+            hasMorePosts = true;
+        } else {
+            document.getElementById('loadMoreArea').style.display = 'none';
+            hasMorePosts = false;
+        }
+        
+    } catch (error) {
+        console.error('피드 로드 오류:', error);
+    }
+    
+    feedLoading = false;
+}
+
+// 게시물 카드 렌더링
+function renderPostCard(post) {
+    var timeAgo = getTimeAgo(new Date(post.created_at));
+    var userInitial = post.user_name ? post.user_name.charAt(0).toUpperCase() : 'U';
+    var isLiked = post.is_liked > 0;
+    var isMyPost = currentUser && post.user_id === currentUser.id;
+    
+    var html = '<div class="post-card" id="post-' + post.id + '" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; overflow: hidden;">';
+    
+    // 헤더
+    html += '<div style="padding: 15px; display: flex; justify-content: space-between; align-items: center;">';
+    html += '<div style="display: flex; align-items: center; gap: 12px;">';
+    html += '<div style="width: 45px; height: 45px; background: #0066cc; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">' + userInitial + '</div>';
+    html += '<div>';
+    html += '<div style="font-weight: 600;">' + post.user_name + '</div>';
+    html += '<div style="font-size: 12px; color: #999;">' + timeAgo + '</div>';
+    html += '</div>';
+    html += '</div>';
+    
+    // 삭제 버튼 (본인 게시물만)
+    if (isMyPost) {
+        html += '<button onclick="deletePost(' + post.id + ')" style="background: none; border: none; color: #999; cursor: pointer; font-size: 18px;" title="삭제">🗑️</button>';
+    }
+    html += '</div>';
+    
+    // 이미지
+    if (post.image_url) {
+        html += '<div style="width: 100%; max-height: 500px; overflow: hidden;">';
+        html += '<img src="' + API_BASE_URL.replace('/api', '') + post.image_url + '" style="width: 100%; object-fit: cover; cursor: pointer;" onclick="openImageModal(this.src)">';
+        html += '</div>';
+    }
+    
+    // 내용
+    if (post.content) {
+        html += '<div style="padding: 15px;">';
+        html += '<p style="margin: 0; line-height: 1.6; white-space: pre-wrap;">' + post.content + '</p>';
+        html += '</div>';
+    }
+    
+    // 액션 버튼
+    html += '<div style="padding: 10px 15px; border-top: 1px solid #eee; display: flex; gap: 20px;">';
+    html += '<button onclick="toggleLike(' + post.id + ')" style="background: none; border: none; cursor: pointer; font-size: 15px; display: flex; align-items: center; gap: 5px; color: ' + (isLiked ? '#ff4444' : '#666') + ';">';
+    html += (isLiked ? '❤️' : '🤍') + ' <span id="like-count-' + post.id + '">' + post.like_count + '</span>';
+    html += '</button>';
+    html += '<button onclick="openCommentModal(' + post.id + ')" style="background: none; border: none; cursor: pointer; font-size: 15px; display: flex; align-items: center; gap: 5px; color: #666;">';
+    html += '💬 <span id="comment-count-' + post.id + '">' + post.comment_count + '</span>';
+    html += '</button>';
+    html += '</div>';
+    
+    html += '</div>';
+    
+    return html;
+}
+
+// 시간 표시 (몇 분 전, 몇 시간 전)
+function getTimeAgo(date) {
+    var now = new Date();
+    var diff = Math.floor((now - date) / 1000);
+    
+    if (diff < 60) return '방금 전';
+    if (diff < 3600) return Math.floor(diff / 60) + '분 전';
+    if (diff < 86400) return Math.floor(diff / 3600) + '시간 전';
+    if (diff < 604800) return Math.floor(diff / 86400) + '일 전';
+    
+    return date.getFullYear() + '.' + (date.getMonth() + 1) + '.' + date.getDate();
+}
+
+// 더보기
+async function loadMorePosts() {
+    if (!hasMorePosts || feedLoading) return;
+    feedPage++;
+    await loadPosts(false);
+}
+
+// 이미지 미리보기
+function previewFeedImage(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 10 * 1024 * 1024) {
+        alert('이미지 크기는 10MB 이하만 가능합니다.');
+        event.target.value = '';
+        return;
+    }
+    
+    selectedFeedImage = file;
+    
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('feedPreviewImg').src = e.target.result;
+        document.getElementById('feedImagePreview').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+// 이미지 취소
+function cancelFeedImage() {
+    selectedFeedImage = null;
+    document.getElementById('feedImageInput').value = '';
+    document.getElementById('feedImagePreview').style.display = 'none';
+}
+
+// 게시물 작성
+async function createPost() {
+    var content = document.getElementById('newPostContent').value.trim();
+    
+    if (!content && !selectedFeedImage) {
+        alert('내용 또는 이미지를 입력해주세요.');
+        return;
+    }
+    
+    try {
+        var formData = new FormData();
+        formData.append('content', content);
+        
+        if (selectedFeedImage) {
+            formData.append('image', selectedFeedImage);
+        }
+        
+        var token = localStorage.getItem('authToken');
+        var response = await fetch(API_BASE_URL + '/feed', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            },
+            body: formData
+        });
+        
+        var result = await response.json();
+        
+        if (result.success) {
+            // 입력 초기화
+            document.getElementById('newPostContent').value = '';
+            cancelFeedImage();
+            
+            // 피드 새로고침
+            await loadFeed();
+        } else {
+            alert('게시물 작성 실패: ' + result.message);
+        }
+    } catch (error) {
+        console.error('게시물 작성 오류:', error);
+        alert('게시물 작성 중 오류가 발생했습니다.');
+    }
+}
+
+// 게시물 삭제
+async function deletePost(postId) {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    
+    try {
+        var response = await apiRequest('/feed/' + postId, { method: 'DELETE' });
+        
+        if (response.success) {
+            document.getElementById('post-' + postId).remove();
+        } else {
+            alert('삭제 실패: ' + response.message);
+        }
+    } catch (error) {
+        console.error('삭제 오류:', error);
+        alert('삭제 중 오류가 발생했습니다.');
+    }
+}
+
+// 좋아요 토글
+async function toggleLike(postId) {
+    try {
+        var response = await apiRequest('/feed/' + postId + '/like', { method: 'POST' });
+        
+        if (response.success) {
+            // 피드 새로고침
+            await loadFeed();
+        }
+    } catch (error) {
+        console.error('좋아요 오류:', error);
+    }
+}
+
+// 댓글 모달 열기
+async function openCommentModal(postId) {
+    currentCommentPostId = postId;
+    document.getElementById('commentModal').classList.add('active');
+    document.body.classList.add('modal-open');
+    
+    await loadComments(postId);
+}
+
+// 댓글 모달 닫기
+function closeCommentModal() {
+    document.getElementById('commentModal').classList.remove('active');
+    document.body.classList.remove('modal-open');
+    currentCommentPostId = null;
+}
+
+// 댓글 로드
+async function loadComments(postId) {
+    try {
+        var response = await apiRequest('/feed/' + postId + '/comments', { method: 'GET' });
+        var comments = response.data || [];
+        
+        var container = document.getElementById('commentList');
+        
+        if (comments.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">댓글이 없습니다.</p>';
+            return;
+        }
+        
+        var html = '';
+        for (var i = 0; i < comments.length; i++) {
+            var comment = comments[i];
+            var timeAgo = getTimeAgo(new Date(comment.created_at));
+            var isMyComment = currentUser && comment.user_id === currentUser.id;
+            
+            html += '<div style="padding: 12px 0; border-bottom: 1px solid #eee;">';
+            html += '<div style="display: flex; justify-content: space-between; align-items: start;">';
+            html += '<div style="flex: 1;">';
+            html += '<span style="font-weight: 600;">' + comment.user_name + '</span>';
+            html += '<span style="color: #999; font-size: 12px; margin-left: 10px;">' + timeAgo + '</span>';
+            html += '<p style="margin: 5px 0 0 0; line-height: 1.5;">' + comment.content + '</p>';
+            html += '</div>';
+            
+            if (isMyComment) {
+                html += '<button onclick="deleteComment(' + comment.id + ')" style="background: none; border: none; color: #999; cursor: pointer; font-size: 14px;">🗑️</button>';
+            }
+            html += '</div>';
+            html += '</div>';
+        }
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('댓글 로드 오류:', error);
+    }
+}
+
+// 댓글 작성
+async function submitComment() {
+    var input = document.getElementById('commentInput');
+    var content = input.value.trim();
+    
+    if (!content || !currentCommentPostId) return;
+    
+    try {
+        var response = await apiRequest('/feed/' + currentCommentPostId + '/comments', {
+            method: 'POST',
+            body: JSON.stringify({ content: content })
+        });
+        
+        if (response.success) {
+            input.value = '';
+            await loadComments(currentCommentPostId);
+            
+            // 댓글 수 업데이트
+            var countEl = document.getElementById('comment-count-' + currentCommentPostId);
+            if (countEl) {
+                countEl.textContent = parseInt(countEl.textContent) + 1;
+            }
+        } else {
+            alert('댓글 작성 실패: ' + response.message);
+        }
+    } catch (error) {
+        console.error('댓글 작성 오류:', error);
+        alert('댓글 작성 중 오류가 발생했습니다.');
+    }
+}
+
+// 댓글 삭제
+async function deleteComment(commentId) {
+    if (!confirm('댓글을 삭제하시겠습니까?')) return;
+    
+    try {
+        var response = await apiRequest('/feed/comments/' + commentId, { method: 'DELETE' });
+        
+        if (response.success) {
+            await loadComments(currentCommentPostId);
+            
+            // 댓글 수 업데이트
+            var countEl = document.getElementById('comment-count-' + currentCommentPostId);
+            if (countEl) {
+                countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1);
+            }
+        } else {
+            alert('삭제 실패: ' + response.message);
+        }
+    } catch (error) {
+        console.error('삭제 오류:', error);
+    }
+}
+
+console.log('✅ 피드 기능 로드 완료');
