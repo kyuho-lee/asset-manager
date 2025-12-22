@@ -3025,15 +3025,33 @@ function openImageModal(src) {
     document.body.appendChild(modal);
 }
 
-// 이미지 다운로드
-function downloadImage(src) {
-    var link = document.createElement('a');
-    link.href = src;
-    link.download = 'chat-image-' + Date.now() + '.jpg';
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+// 이미지 다운로드 (fetch 사용)
+async function downloadImage(src) {
+    try {
+        // 이미지를 blob으로 가져오기
+        var response = await fetch(src);
+        var blob = await response.blob();
+        
+        // blob URL 생성
+        var blobUrl = window.URL.createObjectURL(blob);
+        
+        // 다운로드 링크 생성
+        var link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = 'chat-image-' + Date.now() + '.jpg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // blob URL 해제
+        window.URL.revokeObjectURL(blobUrl);
+        
+        alert('이미지가 다운로드되었습니다!');
+    } catch (error) {
+        console.error('다운로드 오류:', error);
+        // 실패 시 새 탭에서 열기
+        window.open(src, '_blank');
+    }
 }
 
 // 메시지 전송 (이미지 포함)
