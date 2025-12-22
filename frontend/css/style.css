@@ -1206,3 +1206,174 @@ body.modal-open {
         width: 20px;
     }
 }
+
+/* ========== 관리자 페이지 스타일 ========== */
+.user-list {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    overflow: hidden;
+}
+
+.user-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    border-bottom: 1px solid #e0e0e0;
+    transition: background 0.2s;
+}
+
+.user-item:last-child {
+    border-bottom: none;
+}
+
+.user-item:hover {
+    background: #f8f9fa;
+}
+
+.user-info-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.user-info-detail .user-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+.user-info-detail .user-email {
+    font-size: 14px;
+    color: #666;
+}
+
+.user-info-detail .user-date {
+    font-size: 12px;
+    color: #999;
+}
+
+.user-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-permission {
+    padding: 8px 16px;
+    background: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-permission:hover {
+    background: #0052a3;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.3);
+}
+
+.btn-delete-user {
+    padding: 8px 16px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-delete-user:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+/* 권한 설정 모달 스타일 */
+.permission-item {
+    margin-bottom: 15px;
+}
+
+.permission-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.permission-label:hover {
+    background: #e9ecef;
+    border-color: #0066cc;
+}
+
+.permission-checkbox {
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    cursor: pointer;
+}
+
+.permission-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.permission-text strong {
+    font-size: 15px;
+    color: #333;
+}
+
+.permission-text small {
+    font-size: 13px;
+    color: #666;
+}
+
+.btn-cancel {
+    padding: 12px 30px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+    background: #5a6268;
+}
+
+/* 모바일 반응형 관리자 */
+@media (max-width: 768px) {
+    .user-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+        padding: 15px;
+    }
+    
+    .user-actions {
+        width: 100%;
+    }
+    
+    .user-actions button {
+        flex: 1;
+    }
+    
+    .permission-label {
+        padding: 12px;
+    }
+}
