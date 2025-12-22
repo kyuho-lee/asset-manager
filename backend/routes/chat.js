@@ -4,7 +4,7 @@ const db = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 
 // 모든 채팅 API는 로그인 필요
-router.use(auth);
+router.use(authenticateToken);
 
 // ========== 채팅방 목록 조회 ==========
 router.get('/rooms', async (req, res) => {
