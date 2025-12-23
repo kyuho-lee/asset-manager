@@ -589,6 +589,7 @@ async function showPage(page) {
         if (feedPage) {
             feedPage.classList.add('active');
             navItems[4].classList.add('active');
+            await loadStories();
             await loadFeed();
         }
     } else if (page === 'settings') {
@@ -4479,3 +4480,221 @@ async function removeFollower(userId) {
         alert('팔로워 삭제에 실패했습니다.');
     }
 }
+
+
+좋습니다! 🎉
+
+🔧 Step 6: main.js에 스토리 기능 추가
+main.js 맨 아래에 다음 코드를 추가하세요:
+javascript// ========== 스토리 기능 ==========
+var currentStoryUser = null;
+var currentStoryIndex = 0;
+var storyTimer = null;
+var storyProgress = 0;
+
+// 스토리 목록 로드
+async function loadStories() {
+    try {
+        var response = await apiRequest('/stories', { method: 'GET' });
+        var userStories = response.data || [];
+        
+        var container = document.getElementById('storyList');
+        if (!container) return;
+        
+        if (userStories.length === 0) {
+            container.innerHTML = '<p style="color: #999; font-size: 12px; display: flex; align-items: center;">아직 스토리가 없습니다.</p>';
+            return;
+        }
+        
+        var html = '';
+        for (var i = 0; i < userStories.length; i++) {
+            var user = userStories[i];
+            var initial = user.user_name.charAt(0).toUpperCase();
+            var borderColor = user.has_unviewed ? 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)' : '#ccc';
+            
+            html += '<div class="story-item" onclick="openStoryViewer(' + user.user_id + ')" style="cursor: pointer; text-align: center; min-width: 70px;">';
+            html += '<div style="width: 65px; height: 65px; border-radius: 50%; padding: 3px; background: ' + borderColor + '; margin: 0 auto 5px;">';
+            html += '<div style="width: 100%; height: 100%; border-radius: 50%; background: white; padding: 2px;">';
+            html += '<div style="width: 100%; height: 100%; border-radius: 50%; background: #667eea; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">' + initial + '</div>';
+            html += '</div></div>';
+            html += '<span style="font-size: 11px; color: #666; display: block; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + user.user_name + '</span>';
+            html += '</div>';
+        }
+        
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('스토리 로드 오류:', error);
+    }
+}
+
+// 스토리 업로드 모달 열기
+function openStoryUploadModal() {
+    document.getElementById('storyUploadModal').style.display = 'flex';
+    document.getElementById('storyPreviewImage').style.display = 'none';
+    document.getElementById('storyImageLabel').style.display = 'block';
+    document.getElementById('storyImageInput').value = '';
+    document.getElementById('storyTextInput').value = '';
+}
+
+// 스토리 업로드 모달 닫기
+function closeStoryUploadModal() {
+    document.getElementById('storyUploadModal').style.display = 'none';
+}
+
+// 스토리 이미지 미리보기
+function previewStoryImage(event) {
+    var file = event.target.files[0];
+    if (file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('storyPreviewImage').src = e.target.result;
+            document.getElementById('storyPreviewImage').style.display = 'block';
+            document.getElementById('storyImageLabel').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+// 스토리 업로드
+async function uploadStory() {
+    var fileInput = document.getElementById('storyImageInput');
+    var textInput = document.getElementById('storyTextInput');
+    
+    if (!fileInput.files[0]) {
+        alert('이미지를 선택해주세요.');
+        return;
+    }
+    
+    try {
+        // Cloudinary에 이미지 업로드
+        var formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('upload_preset', 'asset_manager');
+        
+        var cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dptfxhtsd/image/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        var cloudinaryData = await cloudinaryResponse.json();
+        
+        if (!cloudinaryData.secure_url) {
+            throw new Error('이미지 업로드 실패');
+        }
+        
+        // 스토리 저장
+        var response = await apiRequest('/stories', {
+            method: 'POST',
+            body: JSON.stringify({
+                image_url: cloudinaryData.secure_url,
+                text_content: textInput.value.trim()
+            })
+        });
+        
+        if (response.success) {
+            alert('스토리가 등록되었습니다!');
+            closeStoryUploadModal();
+            loadStories();
+        }
+    } catch (error) {
+        console.error('스토리 업로드 오류:', error);
+        alert('스토리 업로드에 실패했습니다.');
+    }
+}
+
+// 스토리 뷰어 열기
+async function openStoryViewer(userId) {
+    try {
+        var response = await apiRequest('/stories', { method: 'GET' });
+        var userStories = response.data || [];
+        
+        currentStoryUser = userStories.find(function(u) { return u.user_id === userId; });
+        if (!currentStoryUser || currentStoryUser.stories.length === 0) {
+            alert('스토리가 없습니다.');
+            return;
+        }
+        
+        currentStoryIndex = 0;
+        document.getElementById('storyViewerModal').style.display = 'block';
+        showCurrentStory();
+    } catch (error) {
+        console.error('스토리 뷰어 오류:', error);
+    }
+}
+
+// 현재 스토리 표시
+async function showCurrentStory() {
+    if (!currentStoryUser || currentStoryIndex >= currentStoryUser.stories.length) {
+        closeStoryViewer();
+        return;
+    }
+    
+    var story = currentStoryUser.stories[currentStoryIndex];
+    
+    // 조회 기록 추가
+    await apiRequest('/stories/' + story.id, { method: 'GET' });
+    
+    // UI 업데이트
+    document.getElementById('storyViewerAvatar').textContent = currentStoryUser.user_name.charAt(0).toUpperCase();
+    document.getElementById('storyViewerName').textContent = currentStoryUser.user_name;
+    document.getElementById('storyViewerImage').src = story.image_url;
+    document.getElementById('storyViewerText').textContent = story.text_content || '';
+    
+    // 시간 계산
+    var created = new Date(story.created_at);
+    var now = new Date();
+    var diff = Math.floor((now - created) / 1000 / 60);
+    var timeStr = diff < 60 ? diff + '분 전' : Math.floor(diff / 60) + '시간 전';
+    document.getElementById('storyViewerTime').textContent = timeStr;
+    
+    // 진행바 시작
+    startStoryProgress();
+}
+
+// 스토리 진행바
+function startStoryProgress() {
+    if (storyTimer) clearInterval(storyTimer);
+    storyProgress = 0;
+    
+    var progressBar = document.getElementById('storyProgressBar');
+    progressBar.style.width = '0%';
+    
+    storyTimer = setInterval(function() {
+        storyProgress += 2;
+        progressBar.style.width = storyProgress + '%';
+        
+        if (storyProgress >= 100) {
+            nextStory();
+        }
+    }, 100); // 5초 동안 표시
+}
+
+// 다음 스토리
+function nextStory() {
+    if (storyTimer) clearInterval(storyTimer);
+    currentStoryIndex++;
+    
+    if (currentStoryIndex >= currentStoryUser.stories.length) {
+        closeStoryViewer();
+    } else {
+        showCurrentStory();
+    }
+}
+
+// 이전 스토리
+function prevStory() {
+    if (storyTimer) clearInterval(storyTimer);
+    if (currentStoryIndex > 0) {
+        currentStoryIndex--;
+        showCurrentStory();
+    }
+}
+
+// 스토리 뷰어 닫기
+function closeStoryViewer() {
+    if (storyTimer) clearInterval(storyTimer);
+    document.getElementById('storyViewerModal').style.display = 'none';
+    loadStories(); // 조회 상태 갱신
+}
+
+console.log('✅ 스토리 기능 로드 완료');
