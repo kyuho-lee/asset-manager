@@ -2983,11 +2983,22 @@ async function loadMessages(roomId) {
         }
         
         var html = '';
+        var lastDate = null;
+
         for (var i = 0; i < messages.length; i++) {
             var msg = messages[i];
             var isMe = msg.sender_id === currentUser.id;
             var time = new Date(msg.created_at);
             var timeStr = time.getHours() + ':' + String(time.getMinutes()).padStart(2, '0');
+            
+            // 날짜 구분선 추가
+            var msgDate = time.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+            if (lastDate !== msgDate) {
+                html += '<div style="display: flex; justify-content: center; margin: 20px 0;">';
+                html += '<span style="background: #e0e0e0; color: #666; padding: 6px 15px; border-radius: 15px; font-size: 12px;">' + msgDate + '</span>';
+                html += '</div>';
+                lastDate = msgDate;
+            }
             
             // 메시지 내용 (이미지 또는 텍스트)
             var messageContent = '';
