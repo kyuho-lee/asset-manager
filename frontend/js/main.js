@@ -3749,3 +3749,86 @@ window.addEventListener('resize', function() {
 });
 
 console.log('✅ 모바일 메뉴 기능 로드 완료');
+
+// ========== 비밀번호 찾기 기능 ==========
+
+// 비밀번호 찾기 폼 표시
+function showForgotPassword() {
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('signupForm').classList.add('hidden');
+    document.getElementById('forgotPasswordForm').classList.remove('hidden');
+    
+    // 탭 비활성화
+    document.getElementById('loginTab').classList.remove('active');
+    document.getElementById('signupTab').classList.remove('active');
+    
+    hideMessage();
+}
+
+// 로그인 폼으로 돌아가기
+function showLoginForm() {
+    document.getElementById('forgotPasswordForm').classList.add('hidden');
+    document.getElementById('signupForm').classList.add('hidden');
+    document.getElementById('loginForm').classList.remove('hidden');
+    
+    // 로그인 탭 활성화
+    document.getElementById('loginTab').classList.add('active');
+    document.getElementById('signupTab').classList.remove('active');
+    
+    hideMessage();
+}
+
+// 비밀번호 찾기 폼 제출
+document.addEventListener('DOMContentLoaded', function() {
+    var forgotForm = document.getElementById('forgotPasswordForm');
+    if (forgotForm) {
+        forgotForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            var email = document.getElementById('forgotEmail').value.trim();
+            var submitBtn = forgotForm.querySelector('button[type="submit"]');
+            
+            if (!email) {
+                showMessage('이메일을 입력해주세요.', 'error');
+                return;
+            }
+            
+            // 버튼 비활성화
+            submitBtn.disabled = true;
+            submitBtn.textContent = '전송 중...';
+            
+            try {
+                var response = await fetch(API_BASE_URL + '/auth/forgot-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email: email })
+                });
+                
+                var result = await response.json();
+                
+                if (result.success) {
+                    showMessage('임시 비밀번호가 이메일로 발송되었습니다. 이메일을 확인해주세요!', 'success');
+                    document.getElementById('forgotEmail').value = '';
+                    
+                    // 3초 후 로그인 폼으로 이동
+                    setTimeout(function() {
+                        showLoginForm();
+                    }, 3000);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('비밀번호 찾기 오류:', error);
+                showMessage('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'error');
+            }
+            
+            // 버튼 다시 활성화
+            submitBtn.disabled = false;
+            submitBtn.textContent = '임시 비밀번호 받기';
+        });
+    }
+});
+
+console.log('✅ 비밀번호 찾기 기능 로드 완료');

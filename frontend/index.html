@@ -90,6 +90,22 @@ button[onclick*="downloadExcel"]:hover {
                     <small class="form-help" id="loginAttempts"></small>
                 </div>
                 <button type="submit" class="btn-primary">로그인</button>
+                <p style="text-align: center; margin-top: 15px;">
+                    <a href="#" onclick="showForgotPassword()" style="color: #0066cc; text-decoration: none; font-size: 14px;">비밀번호를 잊으셨나요?</a>
+                </p>
+            </form>
+
+            <!-- 비밀번호 찾기 폼 -->
+            <form id="forgotPasswordForm" class="hidden">
+                <div class="form-group">
+                    <label>가입한 이메일</label>
+                    <input type="email" id="forgotEmail" required placeholder="example@email.com">
+                    <small class="form-help">가입 시 사용한 이메일을 입력하세요.</small>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%;">임시 비밀번호 받기</button>
+                <p style="text-align: center; margin-top: 15px;">
+                    <a href="#" onclick="showLoginForm()" style="color: #666; text-decoration: none; font-size: 14px;">← 로그인으로 돌아가기</a>
+                </p>
             </form>
 
             <form id="signupForm" class="hidden">
