@@ -286,14 +286,11 @@ const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
+    port: 465,
+    secure: true,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    },
-    tls: {
-        rejectUnauthorized: false
     }
 });
 
@@ -364,9 +361,9 @@ router.post('/forgot-password', async (req, res) => {
                 </div>
             `
         };
-
-        await transporter.sendMail(mailOptions);
-
+console.log('이메일 발송 시도:', email);
+var info = await transporter.sendMail(mailOptions);
+console.log('이메일 발송 성공:', info.messageId);
         res.json({ 
             success: true, 
             message: '임시 비밀번호가 이메일로 발송되었습니다.' 
