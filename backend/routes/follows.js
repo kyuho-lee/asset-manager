@@ -164,3 +164,5 @@ router.get('/count/:userId', async (req, res) => {
         res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
     }
 });
+
+module.exports = router;
