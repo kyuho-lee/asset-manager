@@ -449,13 +449,17 @@ async function showMainApp(user) {
     
     // 첫 화면 결정
     if (user.permissions && user.permissions.viewAssets) {
-        showPage('list');
+    showPage('list');
     } else if (user.permissions && user.permissions.registerAssets) {
         showPage('register');
     } else if (user.permissions && user.permissions.pageSettings) {
         showPage('settings');
     } else if (user.permissions && user.permissions.adminPage) {
         showPage('admin');
+    } else if (user.permissions && user.permissions.chat) {
+        showPage('chat');
+    } else if (user.permissions && user.permissions.feed) {
+        showPage('feed');
     } else {
         alert('접근 권한이 없습니다. 관리자에게 문의하세요.');
     }
