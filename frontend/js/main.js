@@ -3931,6 +3931,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// 마이페이지 탭 전환
+function switchMyPageTab(tab) {
+    // 모든 탭 버튼 비활성화
+    var tabs = document.querySelectorAll('.mypage-tab');
+    for (var i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove('active');
+    }
+    
+    // 모든 콘텐츠 숨기기
+    var contents = document.querySelectorAll('.mypage-content');
+    for (var i = 0; i < contents.length; i++) {
+        contents[i].classList.remove('active');
+    }
+    
+    // 선택된 탭 활성화
+    if (tab === 'info') {
+        document.querySelector('.mypage-tab:nth-child(1)').classList.add('active');
+        document.getElementById('myPageInfo').classList.add('active');
+    } else if (tab === 'password') {
+        document.querySelector('.mypage-tab:nth-child(2)').classList.add('active');
+        document.getElementById('myPagePassword').classList.add('active');
+        
+        // 비밀번호 입력 필드 초기화
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmNewPassword').value = '';
+    }
+}
+
 // 비밀번호 변경
 async function changePassword() {
     var currentPw = document.getElementById('currentPassword').value;

@@ -1820,3 +1820,42 @@ body.modal-open {
         right: -10px;
     }
 }
+
+/* ========== 마이페이지 탭 스타일 ========== */
+.mypage-tabs {
+    display: flex;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.mypage-tab {
+    flex: 1;
+    padding: 15px;
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+}
+
+.mypage-tab:hover {
+    background: #f8f9fa;
+    color: #333;
+}
+
+.mypage-tab.active {
+    color: #0066cc;
+    border-bottom-color: #0066cc;
+    background: white;
+}
+
+.mypage-content {
+    display: none;
+}
+
+.mypage-content.active {
+    display: block;
+}

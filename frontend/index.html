@@ -750,42 +750,58 @@ button[onclick*="downloadExcel"]:hover {
                 <h2>👤 마이페이지</h2>
                 <button class="close-btn" onclick="closeMyPage()">×</button>
             </div>
-            <div class="modal-body">
-                <!-- 내 정보 -->
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <h3 style="margin-bottom: 15px; color: #002c5f; font-size: 16px;">📋 내 정보</h3>
-                    <p style="margin: 8px 0;"><strong>이름:</strong> <span id="myName">-</span></p>
-                    <p style="margin: 8px 0;"><strong>이메일:</strong> <span id="myEmail">-</span></p>
-                    <p style="margin: 8px 0;"><strong>가입일:</strong> <span id="myJoinDate">-</span></p>
-                    <p style="margin: 8px 0;"><strong>마지막 로그인:</strong> <span id="myLastLogin">-</span></p>
+            <div class="modal-body" style="padding: 0;">
+                <!-- 탭 메뉴 -->
+                <div class="mypage-tabs">
+                    <button class="mypage-tab active" onclick="switchMyPageTab('info')">📋 내 정보</button>
+                    <button class="mypage-tab" onclick="switchMyPageTab('password')">🔑 비밀번호 변경</button>
                 </div>
                 
-                <!-- 내 권한 -->
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <h3 style="margin-bottom: 15px; color: #002c5f; font-size: 16px;">🔐 내 권한</h3>
-                    <div id="myPermissions" style="display: flex; flex-wrap: wrap; gap: 8px;">
-                        <!-- 동적으로 생성 -->
+                <!-- 내 정보 탭 -->
+                <div id="myPageInfo" class="mypage-content active">
+                    <div style="padding: 25px;">
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                            <h3 style="margin-bottom: 15px; color: #002c5f; font-size: 16px;">📋 기본 정보</h3>
+                            <p style="margin: 10px 0;"><strong>이름:</strong> <span id="myName">-</span></p>
+                            <p style="margin: 10px 0;"><strong>이메일:</strong> <span id="myEmail">-</span></p>
+                            <p style="margin: 10px 0;"><strong>가입일:</strong> <span id="myJoinDate">-</span></p>
+                            <p style="margin: 10px 0;"><strong>마지막 로그인:</strong> <span id="myLastLogin">-</span></p>
+                        </div>
+                        
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                            <h3 style="margin-bottom: 15px; color: #002c5f; font-size: 16px;">🔐 내 권한</h3>
+                            <div id="myPermissions" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- 비밀번호 변경 -->
-                <div style="background: #fff3cd; padding: 20px; border-radius: 8px; border-left: 4px solid #ffc107;">
-                    <h3 style="margin-bottom: 15px; color: #856404; font-size: 16px;">🔑 비밀번호 변경</h3>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label style="font-size: 14px;">현재 비밀번호</label>
-                        <input type="password" id="currentPassword" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
+                <!-- 비밀번호 변경 탭 -->
+                <div id="myPagePassword" class="mypage-content">
+                    <div style="padding: 25px;">
+                        <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+                            <p style="margin: 0; color: #856404; font-size: 14px;">
+                                ⚠️ 비밀번호 변경 후 다시 로그인해야 합니다.
+                            </p>
+                        </div>
+                        
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label style="font-size: 14px; font-weight: 600;">현재 비밀번호</label>
+                            <input type="password" id="currentPassword" style="width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 6px; box-sizing: border-box; margin-top: 5px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label style="font-size: 14px; font-weight: 600;">새 비밀번호</label>
+                            <input type="password" id="newPassword" style="width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 6px; box-sizing: border-box; margin-top: 5px;">
+                            <small style="color: #666; font-size: 12px;">최소 8자 이상</small>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label style="font-size: 14px; font-weight: 600;">새 비밀번호 확인</label>
+                            <input type="password" id="confirmNewPassword" style="width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 6px; box-sizing: border-box; margin-top: 5px;">
+                        </div>
+                        <button onclick="changePassword()" style="width: 100%; padding: 14px; background: #0066cc; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                            비밀번호 변경
+                        </button>
                     </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label style="font-size: 14px;">새 비밀번호</label>
-                        <input type="password" id="newPassword" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="font-size: 14px;">새 비밀번호 확인</label>
-                        <input type="password" id="confirmNewPassword" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
-                    </div>
-                    <button onclick="changePassword()" style="width: 100%; padding: 12px; background: #0066cc; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
-                        비밀번호 변경
-                    </button>
                 </div>
             </div>
         </div>
