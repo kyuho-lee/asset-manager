@@ -3,40 +3,29 @@ const router = express.Router();
 const db = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
 
-// uploads 폴더 자동 생성
-const uploadsDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
+// Cloudinary 설정
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
-// 이미지 업로드 설정
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads/');
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'feed-' + uniqueSuffix + path.extname(file.originalname));
+// Cloudinary 스토리지 설정
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'feed-images',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+        transformation: [{ width: 1000, height: 1000, crop: 'limit' }]
     }
 });
 
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: function (req, file, cb) {
-        const allowedTypes = /jpeg|jpg|png|gif|webp/;
-        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
-        
-        if (extname && mimetype) {
-            return cb(null, true);
-        } else {
-            cb(new Error('이미지 파일만 업로드 가능합니다.'));
-        }
-    }
+    limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 // 모든 피드 API는 로그인 필요
@@ -87,12 +76,12 @@ router.get('/', async (req, res) => {
     }
 });
 
-// ========== 게시물 작성 ==========
+// 게시물 작성
 router.post('/', upload.single('image'), async (req, res) => {
     try {
-        const userId = req.user.id;
         const { content } = req.body;
-        const imageUrl = req.file ? '/uploads/' + req.file.filename : null;
+        const userId = req.user.id;
+        const imageUrl = req.file ? req.file.path : null;
         
         if (!content && !imageUrl) {
             return res.status(400).json({ success: false, message: '내용 또는 이미지를 입력해주세요.' });
