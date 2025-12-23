@@ -281,3 +281,97 @@ async function recordLoginAttempt(email, success) {
 }
 
 module.exports = router;
+
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
+
+// 임시 비밀번호 생성
+function generateTempPassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+    let password = '';
+    for (let i = 0; i < 10; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+}
+
+// 비밀번호 찾기 (임시 비밀번호 발송)
+router.post('/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ 
+                success: false, 
+                message: '이메일을 입력해주세요.' 
+            });
+        }
+
+        // 사용자 확인
+        const [users] = await db.query(
+            'SELECT id, name, email FROM users WHERE email = ?',
+            [email.toLowerCase()]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                message: '등록되지 않은 이메일입니다.' 
+            });
+        }
+
+        const user = users[0];
+
+        // 임시 비밀번호 생성
+        const tempPassword = generateTempPassword();
+
+        // 비밀번호 해싱 후 저장
+        const hashedPassword = await bcrypt.hash(tempPassword, 10);
+        await db.query(
+            'UPDATE users SET password = ? WHERE id = ?',
+            [hashedPassword, user.id]
+        );
+
+        // 이메일 발송
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: '[자산관리시스템] 임시 비밀번호 안내',
+            html: `
+                <div style="font-family: 'Malgun Gothic', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #002c5f; border-bottom: 3px solid #0066cc; padding-bottom: 10px;">🔐 임시 비밀번호 안내</h2>
+                    <p>안녕하세요, <strong>${user.name}</strong>님!</p>
+                    <p>요청하신 임시 비밀번호를 안내해드립니다.</p>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                        <p style="margin: 0; color: #666;">임시 비밀번호</p>
+                        <p style="font-size: 24px; font-weight: bold; color: #0066cc; margin: 10px 0; letter-spacing: 2px;">${tempPassword}</p>
+                    </div>
+                    <p style="color: #dc3545;">⚠️ 보안을 위해 로그인 후 반드시 비밀번호를 변경해주세요.</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                    <p style="color: #999; font-size: 12px;">본 메일은 발신 전용입니다.</p>
+                </div>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        res.json({ 
+            success: true, 
+            message: '임시 비밀번호가 이메일로 발송되었습니다.' 
+        });
+
+    } catch (error) {
+        console.error('비밀번호 찾기 오류:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: '이메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.' 
+        });
+    }
+});
