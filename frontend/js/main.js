@@ -3441,6 +3441,14 @@ async function loadPosts(reset) {
             var post = posts[i];
             container.innerHTML += renderPostCard(post);
         }
+
+        // 팔로우 상태 확인 (본인 게시물 제외)
+        for (var i = 0; i < posts.length; i++) {
+            var post = posts[i];
+            if (currentUser && post.user_id !== currentUser.id) {
+                checkFollowStatus(post.user_id);
+            }
+        }
         
         // 더보기 버튼 표시 여부
         if (pagination && feedPage < pagination.totalPages) {
