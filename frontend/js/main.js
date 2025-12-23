@@ -447,9 +447,13 @@ async function showMainApp(user) {
     // 권한에 따라 메뉴 표시/숨김
     applyPermissions(user);
     
+    // Socket.IO 연결 및 알림 로드
+    connectSocket();
+    loadNotifications();
+    
     // 첫 화면 결정
     if (user.permissions && user.permissions.viewAssets) {
-    showPage('list');
+        showPage('list');
     } else if (user.permissions && user.permissions.registerAssets) {
         showPage('register');
     } else if (user.permissions && user.permissions.pageSettings) {
@@ -4023,3 +4027,178 @@ async function changePassword() {
 }
 
 console.log('✅ 마이페이지 기능 로드 완료');
+
+// ========== 알림 기능 ==========
+var socket = null;
+
+// Socket.IO 연결
+function connectSocket() {
+    if (!currentUser) return;
+    
+    var socketUrl = API_BASE_URL.replace('/api', '');
+    socket = io(socketUrl);
+    
+    socket.on('connect', function() {
+        console.log('✅ Socket 연결됨');
+        socket.emit('register', currentUser.id);
+    });
+    
+    socket.on('newNotification', function(data) {
+        console.log('🔔 새 알림:', data);
+        loadNotifications();
+        showNotificationToast(data.message);
+    });
+    
+    socket.on('disconnect', function() {
+        console.log('❌ Socket 연결 해제');
+    });
+}
+
+// 알림 목록 로드
+async function loadNotifications() {
+    try {
+        var response = await apiRequest('/notifications', { method: 'GET' });
+        var notifications = response.data || [];
+        
+        renderNotifications(notifications);
+        updateNotificationBadge(notifications);
+    } catch (error) {
+        console.error('알림 로드 오류:', error);
+    }
+}
+
+// 알림 목록 렌더링
+function renderNotifications(notifications) {
+    var list = document.getElementById('notificationList');
+    
+    if (notifications.length === 0) {
+        list.innerHTML = '<p class="no-notifications">새로운 알림이 없습니다.</p>';
+        return;
+    }
+    
+    var html = '';
+    for (var i = 0; i < notifications.length; i++) {
+        var n = notifications[i];
+        var icon = '🔔';
+        if (n.type === 'chat') icon = '💬';
+        else if (n.type === 'comment') icon = '💬';
+        else if (n.type === 'like') icon = '❤️';
+        
+        var timeAgo = getTimeAgo(new Date(n.created_at));
+        
+        html += '<div class="notification-item ' + (n.is_read ? '' : 'unread') + '" onclick="handleNotificationClick(' + n.id + ', \'' + (n.link || '') + '\')">';
+        html += '<div class="notification-item-content">';
+        html += '<span class="notification-icon">' + icon + '</span>';
+        html += '<div class="notification-text">';
+        html += '<p>' + n.message + '</p>';
+        html += '<small>' + timeAgo + '</small>';
+        html += '</div>';
+        html += '</div>';
+        html += '</div>';
+    }
+    
+    list.innerHTML = html;
+}
+
+// 알림 뱃지 업데이트
+function updateNotificationBadge(notifications) {
+    var unreadCount = 0;
+    for (var i = 0; i < notifications.length; i++) {
+        if (!notifications[i].is_read) unreadCount++;
+    }
+    
+    var badge = document.getElementById('notificationBadge');
+    if (unreadCount > 0) {
+        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// 알림 드롭다운 토글
+function toggleNotificationDropdown() {
+    var dropdown = document.getElementById('notificationDropdown');
+    dropdown.classList.toggle('active');
+    
+    // 다른 드롭다운 닫기
+    closeUserDropdown();
+    
+    // 알림 로드
+    if (dropdown.classList.contains('active')) {
+        loadNotifications();
+    }
+}
+
+// 알림 드롭다운 닫기
+function closeNotificationDropdown() {
+    var dropdown = document.getElementById('notificationDropdown');
+    if (dropdown) dropdown.classList.remove('active');
+}
+
+// 바깥 클릭 시 알림 드롭다운 닫기
+document.addEventListener('click', function(e) {
+    var wrapper = document.querySelector('.notification-wrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+        closeNotificationDropdown();
+    }
+});
+
+// 알림 클릭 처리
+async function handleNotificationClick(notificationId, link) {
+    try {
+        // 읽음 처리
+        await apiRequest('/notifications/' + notificationId + '/read', { method: 'PUT' });
+        
+        // 링크로 이동
+        if (link) {
+            if (link.includes('/chat/')) {
+                var roomId = link.split('/chat/')[1];
+                showPage('chat');
+                setTimeout(function() {
+                    openChatRoom(parseInt(roomId), '채팅');
+                }, 500);
+            } else if (link.includes('/feed/')) {
+                showPage('feed');
+            }
+        }
+        
+        closeNotificationDropdown();
+        loadNotifications();
+    } catch (error) {
+        console.error('알림 처리 오류:', error);
+    }
+}
+
+// 모든 알림 읽음 처리
+async function markAllNotificationsRead() {
+    try {
+        await apiRequest('/notifications/read-all', { method: 'PUT' });
+        loadNotifications();
+    } catch (error) {
+        console.error('알림 읽음 처리 오류:', error);
+    }
+}
+
+// 알림 토스트 메시지
+function showNotificationToast(message) {
+    var toast = document.createElement('div');
+    toast.style.cssText = 'position: fixed; top: 80px; right: 20px; background: #333; color: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 10000; animation: slideIn 0.3s ease;';
+    toast.innerHTML = '🔔 ' + message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(function() {
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(function() {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+
+// 토스트 애니메이션 스타일 추가
+var toastStyle = document.createElement('style');
+toastStyle.textContent = '@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }';
+document.head.appendChild(toastStyle);
+
+console.log('✅ 알림 기능 로드 완료');

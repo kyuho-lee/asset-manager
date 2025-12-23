@@ -90,8 +90,6 @@ app.use((err, req, res, next) => {
 
 // ========== 서버 시작 ==========
 
-const http = require('http');
-const { Server } = require('socket.io');
 
 const PORT = process.env.PORT || 5000;
 
