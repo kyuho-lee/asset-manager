@@ -2023,7 +2023,7 @@ document.addEventListener('DOMContentLoaded', function() {
         showPage('admin');
     });
     
-    document.getElementById('logoutBtn').addEventListener('click', logout);
+   // document.getElementById('logoutBtn').addEventListener('click', logout);
     
     document.getElementById('signupForm').addEventListener('submit', handleSignup);
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
