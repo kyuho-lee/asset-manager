@@ -2972,7 +2972,8 @@ async function loadMessages(roomId) {
             // 메시지 내용 (이미지 또는 텍스트)
             var messageContent = '';
             if (msg.message_type === 'image' && msg.file_url) {
-                messageContent = '<img src="' + API_BASE_URL.replace('/api', '') + msg.file_url + '" style="max-width: 200px; max-height: 200px; border-radius: 10px; cursor: pointer;" onclick="openImageModal(this.src)">';
+                var imgUrl = msg.file_url.startsWith('http') ? msg.file_url : API_BASE_URL.replace('/api', '') + msg.file_url;
+                messageContent = '<img src="' + imgUrl + '" style="max-width: 200px; max-height: 200px; border-radius: 10px; cursor: pointer;" onclick="openImageModal(this.src)">';
             } else {
                 messageContent = msg.message;
             }
@@ -3450,11 +3451,12 @@ function renderPostCard(post) {
     
     // 이미지
     if (post.image_url) {
+        var imgSrc = post.image_url.startsWith('http') ? post.image_url : API_BASE_URL.replace('/api', '') + post.image_url;
         html += '<div style="width: 100%; max-height: 500px; overflow: hidden;">';
-        html += '<img src="' + API_BASE_URL.replace('/api', '') + post.image_url + '" style="width: 100%; object-fit: cover; cursor: pointer;" onclick="openImageModal(this.src)">';
+        html += '<img src="' + imgSrc + '" style="width: 100%; object-fit: cover; cursor: pointer;" onclick="openImageModal(this.src)">';
         html += '</div>';
     }
-    
+
     // 내용
     if (post.content) {
         html += '<div style="padding: 15px;">';
