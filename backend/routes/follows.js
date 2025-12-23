@@ -165,4 +165,23 @@ router.get('/count/:userId', async (req, res) => {
     }
 });
 
+// 팔로워 삭제 (나를 팔로우하는 사람 삭제)
+router.delete('/follower/:userId', async (req, res) => {
+    try {
+        const myId = req.user.id;
+        const followerId = parseInt(req.params.userId);
+        
+        // 나를 팔로우하는 사람 삭제
+        await db.query(
+            'DELETE FROM follows WHERE follower_id = ? AND following_id = ?',
+            [followerId, myId]
+        );
+        
+        res.json({ success: true, message: '팔로워를 삭제했습니다.' });
+    } catch (error) {
+        console.error('팔로워 삭제 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    }
+});
+
 module.exports = router;

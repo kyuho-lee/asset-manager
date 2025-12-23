@@ -4359,7 +4359,7 @@ function renderFollowList(list, type) {
         html += '</div>';
         
         if (type === 'followers') {
-            html += '<button class="btn-follow following" onclick="unfollowUser(' + user.id + ')">팔로워 삭제</button>';
+            html += '<button class="btn-follow following" onclick="removeFollower(' + user.id + ')">팔로워 삭제</button>';
         } else {
             html += '<button class="btn-follow following" onclick="unfollowUser(' + user.id + ')">언팔로우</button>';
         }
@@ -4460,5 +4460,22 @@ async function checkFollowStatus(userId) {
         }
     } catch (error) {
         console.error('팔로우 상태 확인 오류:', error);
+    }
+}
+
+// 팔로워 삭제 (나를 팔로우하는 사람 삭제)
+async function removeFollower(userId) {
+    if (!confirm('이 사용자를 팔로워에서 삭제하시겠습니까?')) return;
+    
+    try {
+        var response = await apiRequest('/follows/follower/' + userId, { method: 'DELETE' });
+        
+        if (response.success) {
+            loadFollowCounts();
+            showFollowList('followers');
+        }
+    } catch (error) {
+        console.error('팔로워 삭제 오류:', error);
+        alert('팔로워 삭제에 실패했습니다.');
     }
 }
