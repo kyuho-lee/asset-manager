@@ -132,4 +132,35 @@ router.get('/status/:userId', async (req, res) => {
         
         res.json({ success: true, isFollowing: result.length > 0 });
     } catch (error) {
-        console
+        console.error('팔로우 상태 확인 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    }
+});
+
+// 사용자의 팔로워/팔로잉 수
+router.get('/count/:userId', async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        
+        const [followers] = await db.query(
+            'SELECT COUNT(*) as count FROM follows WHERE following_id = ?',
+            [userId]
+        );
+        
+        const [following] = await db.query(
+            'SELECT COUNT(*) as count FROM follows WHERE follower_id = ?',
+            [userId]
+        );
+        
+        res.json({
+            success: true,
+            data: {
+                followers: followers[0].count,
+                following: following[0].count
+            }
+        });
+    } catch (error) {
+        console.error('팔로우 수 조회 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    }
+});
