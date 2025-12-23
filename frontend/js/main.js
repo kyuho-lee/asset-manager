@@ -2953,6 +2953,9 @@ async function openChatRoom(roomId, roomName) {
     document.getElementById('chatAreaContainer').classList.add('mobile-active');
     document.getElementById('chatRoomListContainer').classList.add('mobile-hidden');
     
+    // 이모티콘 패널 렌더링
+    renderEmojiPanel();
+    
     // 메시지 로드
     await loadMessages(roomId);
     
@@ -4213,3 +4216,66 @@ toastStyle.textContent = '@keyframes slideIn { from { transform: translateX(100%
 document.head.appendChild(toastStyle);
 
 console.log('✅ 알림 기능 로드 완료');
+
+
+// ========== 이모티콘 기능 ==========
+var emojis = [
+    '😀', '😂', '🥹', '😊', '😍', '🥰', '😘', '😎',
+    '🤔', '😅', '😢', '😭', '😡', '🤯', '😱', '🥶',
+    '👍', '👎', '👏', '🙏', '💪', '✌️', '🤝', '👋',
+    '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '💔',
+    '🎉', '🎊', '🔥', '⭐', '✨', '💯', '💢', '💤',
+    '🍕', '🍔', '🍟', '🍺', '☕', '🍰', '🎂', '🍎',
+    '⚽', '🏀', '🎮', '🎬', '🎵', '📱', '💻', '🚗'
+];
+
+// 이모티콘 패널 토글
+function toggleEmojiPanel() {
+    var panel = document.getElementById('emojiPanel');
+    if (panel) {
+        panel.classList.toggle('active');
+    }
+}
+
+// 이모티콘 패널 닫기
+function closeEmojiPanel() {
+    var panel = document.getElementById('emojiPanel');
+    if (panel) {
+        panel.classList.remove('active');
+    }
+}
+
+// 이모티콘 선택
+function selectEmoji(emoji) {
+    var input = document.getElementById('chatInput');
+    if (input) {
+        input.value += emoji;
+        input.focus();
+    }
+    closeEmojiPanel();
+}
+
+// 이모티콘 패널 렌더링
+function renderEmojiPanel() {
+    var panel = document.getElementById('emojiPanel');
+    if (!panel) return;
+    
+    var html = '<div class="emoji-grid">';
+    for (var i = 0; i < emojis.length; i++) {
+        html += '<span class="emoji-item" onclick="selectEmoji(\'' + emojis[i] + '\')">' + emojis[i] + '</span>';
+    }
+    html += '</div>';
+    
+    panel.innerHTML = html;
+}
+
+// 바깥 클릭 시 이모티콘 패널 닫기
+document.addEventListener('click', function(e) {
+    var panel = document.getElementById('emojiPanel');
+    var btn = document.getElementById('emojiBtn');
+    if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
+        closeEmojiPanel();
+    }
+});
+
+console.log('✅ 이모티콘 기능 로드 완료');

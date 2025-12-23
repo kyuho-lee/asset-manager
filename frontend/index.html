@@ -475,11 +475,18 @@ button[onclick*="downloadExcel"]:hover {
                             <button onclick="cancelImageUpload()" style="padding: 5px 10px; background: #ff4444; color: white; border: none; border-radius: 5px; cursor: pointer;">✕ 취소</button>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 10px;">
+                    <div style="display: flex; gap: 10px; align-items: center;">
                         <label style="padding: 12px 15px; background: #f0f0f0; border-radius: 25px; cursor: pointer; display: flex; align-items: center;">
                             <input type="file" id="imageInput" accept="image/*" onchange="previewImage(event)" style="display: none;">
                             📷
                         </label>
+                        <!-- 이모티콘 버튼 -->
+                        <div style="position: relative;">
+                            <button id="emojiBtn" onclick="toggleEmojiPanel()" style="padding: 12px 15px; background: #f0f0f0; border: none; border-radius: 25px; cursor: pointer; font-size: 18px;">
+                                😀
+                            </button>
+                            <div id="emojiPanel" class="emoji-panel"></div>
+                        </div>
                         <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." 
                             style="flex: 1; padding: 12px 15px; border: 1.5px solid #ddd; border-radius: 25px; font-size: 14px; outline: none;"
                             onkeypress="if(event.key === 'Enter') sendMessage()">

@@ -2015,3 +2015,58 @@ body.modal-open {
         padding: 6px;
     }
 }
+
+/* ========== 이모티콘 패널 스타일 ========== */
+.emoji-panel {
+    display: none;
+    position: absolute;
+    bottom: 50px;
+    left: 0;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 10px;
+    width: 280px;
+    z-index: 1000;
+}
+
+.emoji-panel.active {
+    display: block;
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 5px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.emoji-item {
+    font-size: 22px;
+    padding: 5px;
+    cursor: pointer;
+    text-align: center;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.emoji-item:hover {
+    background: #f0f0f0;
+}
+
+/* 모바일 이모티콘 */
+@media (max-width: 768px) {
+    .emoji-panel {
+        width: 240px;
+        left: -50px;
+    }
+    
+    .emoji-grid {
+        grid-template-columns: repeat(6, 1fr);
+    }
+    
+    .emoji-item {
+        font-size: 20px;
+    }
+}
