@@ -4247,7 +4247,7 @@ function closeEmojiPanel() {
 
 // 이모티콘 선택
 function selectEmoji(emoji) {
-    var input = document.getElementById('chatInput');
+    var input = document.getElementById('messageInput');
     if (input) {
         input.value += emoji;
         input.focus();
