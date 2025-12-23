@@ -4482,10 +4482,6 @@ async function removeFollower(userId) {
 }
 
 
-좋습니다! 🎉
-
-🔧 Step 6: main.js에 스토리 기능 추가
-main.js 맨 아래에 다음 코드를 추가하세요:
 javascript// ========== 스토리 기능 ==========
 var currentStoryUser = null;
 var currentStoryIndex = 0;
