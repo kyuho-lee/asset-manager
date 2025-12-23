@@ -4402,11 +4402,12 @@ async function unfollowUser(userId) {
 console.log('✅ 팔로우 기능 로드 완료');
 
 // 피드에서 팔로우 토글
+// 피드에서 팔로우 토글
 async function toggleFollowFromFeed(userId) {
     var btn = document.getElementById('follow-btn-' + userId);
     if (!btn) return;
     
-    var isFollowing = btn.textContent === '팔로잉';
+    var isFollowing = btn.textContent.trim() === '팔로잉';
     
     try {
         if (isFollowing) {
@@ -4416,11 +4417,22 @@ async function toggleFollowFromFeed(userId) {
             btn.style.background = 'white';
             btn.style.color = '#0066cc';
         } else {
-            // 팔로우
-            await apiRequest('/follows/' + userId, { method: 'POST' });
-            btn.textContent = '팔로잉';
-            btn.style.background = '#0066cc';
-            btn.style.color = 'white';
+            // 먼저 상태 확인
+            var statusRes = await apiRequest('/follows/status/' + userId, { method: 'GET' });
+            
+            if (statusRes.isFollowing) {
+                // 이미 팔로우 중이면 언팔로우
+                await apiRequest('/follows/' + userId, { method: 'DELETE' });
+                btn.textContent = '팔로우';
+                btn.style.background = 'white';
+                btn.style.color = '#0066cc';
+            } else {
+                // 팔로우
+                await apiRequest('/follows/' + userId, { method: 'POST' });
+                btn.textContent = '팔로잉';
+                btn.style.background = '#0066cc';
+                btn.style.color = 'white';
+            }
         }
     } catch (error) {
         console.error('팔로우 토글 오류:', error);
