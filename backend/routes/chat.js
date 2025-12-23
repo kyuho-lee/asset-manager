@@ -235,6 +235,10 @@ router.post('/rooms/:roomId/messages', async (req, res) => {
             return res.status(403).json({ success: false, message: '채팅방에 참여하지 않았습니다.' });
         }
         
+        // 보낸 사람 이름 조회
+        const [sender] = await db.query('SELECT name FROM users WHERE id = ?', [userId]);
+        const senderName = sender[0].name;
+        
         // 메시지 저장
         const [result] = await db.query(`
             INSERT INTO chat_messages (room_id, sender_id, message, message_type, file_url)
@@ -259,6 +263,34 @@ router.post('/rooms/:roomId/messages', async (req, res) => {
             JOIN users u ON cm.sender_id = u.id
             WHERE cm.id = ?
         `, [result.insertId]);
+        
+        // ===== 알림 발송 =====
+        // 채팅방의 다른 참여자들에게 알림
+        const [otherParticipants] = await db.query(`
+            SELECT user_id FROM chat_participants WHERE room_id = ? AND user_id != ?
+        `, [roomId, userId]);
+        
+        const io = req.app.get('io');
+        const connectedUsers = req.app.get('connectedUsers');
+        
+        for (let p of otherParticipants) {
+            // DB에 알림 저장
+            const notificationMsg = messageType === 'image' ? '📷 사진을 보냈습니다.' : message.substring(0, 50);
+            await db.query(`
+                INSERT INTO notifications (user_id, type, message, link)
+                VALUES (?, 'chat', ?, ?)
+            `, [p.user_id, `${senderName}: ${notificationMsg}`, `/chat/${roomId}`]);
+            
+            // 실시간 알림 (Socket.IO)
+            const socketId = connectedUsers.get(p.user_id);
+            if (socketId) {
+                io.to(socketId).emit('newNotification', {
+                    type: 'chat',
+                    message: `${senderName}: ${notificationMsg}`,
+                    roomId: roomId
+                });
+            }
+        }
         
         res.json({ success: true, data: newMessage[0], message: '메시지가 전송되었습니다.' });
     } catch (error) {

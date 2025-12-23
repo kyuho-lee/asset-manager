@@ -3,6 +3,8 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 require('dotenv').config();
+const http = require('http');
+const { Server } = require('socket.io');
 
 const app = express();
 
@@ -32,6 +34,8 @@ const usersRoutes = require('./routes/users');
 const settingsRoutes = require('./routes/settings');  
 const chatRoutes = require('./routes/chat');  
 const feedRoutes = require('./routes/feed');
+const notificationsRoutes = require('./routes/notifications');
+
 
 app.use('/api/auth', authRoutes);
 app.use('/api/assets', assetsRoutes);
@@ -39,6 +43,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/settings', settingsRoutes);  
 app.use('/api/chat', chatRoutes);  
 app.use('/api/feed', feedRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // ========== 기본 라우트 ==========
 
@@ -85,9 +90,51 @@ app.use((err, req, res, next) => {
 
 // ========== 서버 시작 ==========
 
+const http = require('http');
+const { Server } = require('socket.io');
+
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+// HTTP 서버 생성
+const server = http.createServer(app);
+
+// Socket.IO 설정
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
+
+// 접속한 사용자 관리
+const connectedUsers = new Map();
+
+io.on('connection', (socket) => {
+    console.log('새 클라이언트 연결:', socket.id);
+    
+    // 사용자 등록
+    socket.on('register', (userId) => {
+        connectedUsers.set(userId, socket.id);
+        console.log(`사용자 ${userId} 등록됨`);
+    });
+    
+    // 연결 해제
+    socket.on('disconnect', () => {
+        for (let [userId, socketId] of connectedUsers.entries()) {
+            if (socketId === socket.id) {
+                connectedUsers.delete(userId);
+                console.log(`사용자 ${userId} 연결 해제`);
+                break;
+            }
+        }
+    });
+});
+
+// io를 다른 라우터에서 사용할 수 있도록
+app.set('io', io);
+app.set('connectedUsers', connectedUsers);
+
+server.listen(PORT, () => {
     console.log('=================================');
     console.log('🚀 자산관리 시스템 서버 시작!');
     console.log('=================================');

@@ -143,6 +143,36 @@ router.post('/:postId/like', async (req, res) => {
         } else {
             // 좋아요 추가
             await db.query('INSERT INTO likes (post_id, user_id) VALUES (?, ?)', [postId, userId]);
+            
+            // ===== 알림 발송 =====
+            // 게시물 작성자에게 알림 (본인 제외)
+            const [post] = await db.query('SELECT user_id FROM posts WHERE id = ?', [postId]);
+            const postOwnerId = post[0].user_id;
+            
+            if (postOwnerId !== userId) {
+                const [liker] = await db.query('SELECT name FROM users WHERE id = ?', [userId]);
+                const likerName = liker[0].name;
+                
+                // DB에 알림 저장
+                await db.query(`
+                    INSERT INTO notifications (user_id, type, message, link)
+                    VALUES (?, 'like', ?, ?)
+                `, [postOwnerId, `${likerName}님이 게시물을 좋아합니다. ❤️`, `/feed/${postId}`]);
+                
+                // 실시간 알림
+                const io = req.app.get('io');
+                const connectedUsers = req.app.get('connectedUsers');
+                const socketId = connectedUsers.get(postOwnerId);
+                
+                if (socketId) {
+                    io.to(socketId).emit('newNotification', {
+                        type: 'like',
+                        message: `${likerName}님이 게시물을 좋아합니다. ❤️`,
+                        postId: postId
+                    });
+                }
+            }
+            
             res.json({ success: true, liked: true, message: '좋아요를 눌렀습니다.' });
         }
     } catch (error) {
@@ -199,6 +229,35 @@ router.post('/:postId/comments', async (req, res) => {
             JOIN users u ON c.user_id = u.id
             WHERE c.id = ?
         `, [result.insertId]);
+        
+        // ===== 알림 발송 =====
+        // 게시물 작성자에게 알림 (본인 제외)
+        const [post] = await db.query('SELECT user_id FROM posts WHERE id = ?', [postId]);
+        const postOwnerId = post[0].user_id;
+        
+        if (postOwnerId !== userId) {
+            const [commenter] = await db.query('SELECT name FROM users WHERE id = ?', [userId]);
+            const commenterName = commenter[0].name;
+            
+            // DB에 알림 저장
+            await db.query(`
+                INSERT INTO notifications (user_id, type, message, link)
+                VALUES (?, 'comment', ?, ?)
+            `, [postOwnerId, `${commenterName}님이 댓글을 남겼습니다: ${content.substring(0, 30)}`, `/feed/${postId}`]);
+            
+            // 실시간 알림
+            const io = req.app.get('io');
+            const connectedUsers = req.app.get('connectedUsers');
+            const socketId = connectedUsers.get(postOwnerId);
+            
+            if (socketId) {
+                io.to(socketId).emit('newNotification', {
+                    type: 'comment',
+                    message: `${commenterName}님이 댓글을 남겼습니다.`,
+                    postId: postId
+                });
+            }
+        }
         
         res.json({ success: true, data: newComment[0], message: '댓글이 작성되었습니다.' });
     } catch (error) {
