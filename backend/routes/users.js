@@ -11,10 +11,10 @@ router.get('/', async (req, res) => {
     try {
         const [users] = await db.query(
             `SELECT u.id, u.name, u.email, u.join_date, u.last_login,
-                    p.view_assets, p.register_assets, p.page_settings, p.admin_page
-             FROM users u
-             LEFT JOIN permissions p ON u.id = p.user_id
-             ORDER BY u.created_at DESC`
+                    p.view_assets, p.register_assets, p.page_settings, p.admin_page, p.can_chat, p.can_feed
+            FROM users u
+            LEFT JOIN permissions p ON u.id = p.user_id
+            ORDER BY u.created_at DESC`
         );
 
         // 비밀번호 제외하고 반환
@@ -28,7 +28,9 @@ router.get('/', async (req, res) => {
                 viewAssets: user.view_assets,
                 registerAssets: user.register_assets,
                 pageSettings: user.page_settings,
-                adminPage: user.admin_page
+                adminPage: user.admin_page,
+                chat: user.can_chat,
+                feed: user.can_feed
             }
         }));
 
@@ -67,7 +69,7 @@ router.get('/:id', async (req, res) => {
             });
         }
 
-        const user = users[0];
+    const user = users[0];
         const userInfo = {
             id: user.id,
             name: user.name,
@@ -78,7 +80,9 @@ router.get('/:id', async (req, res) => {
                 viewAssets: user.view_assets,
                 registerAssets: user.register_assets,
                 pageSettings: user.page_settings,
-                adminPage: user.admin_page
+                adminPage: user.admin_page,
+                chat: user.can_chat === 1,
+                feed: user.can_feed === 1
             }
         };
 
@@ -104,7 +108,9 @@ router.put('/:id/permissions', async (req, res) => {
             view_assets,
             register_assets,
             page_settings,
-            admin_page
+            admin_page,
+            can_chat,
+            can_feed
         } = req.body;
 
         // 사용자 존재 확인
@@ -130,17 +136,17 @@ router.put('/:id/permissions', async (req, res) => {
             // 권한 레코드가 없으면 생성
             await db.query(
                 `INSERT INTO permissions 
-                (user_id, view_assets, register_assets, page_settings, admin_page) 
-                VALUES (?, ?, ?, ?, ?)`,
-                [id, view_assets, register_assets, page_settings, admin_page]
+                (user_id, view_assets, register_assets, page_settings, admin_page, can_chat, can_feed) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [id, view_assets, register_assets, page_settings, admin_page, can_chat, can_feed]
             );
         } else {
             // 권한 업데이트
             await db.query(
                 `UPDATE permissions 
-                SET view_assets = ?, register_assets = ?, page_settings = ?, admin_page = ?
+                SET view_assets = ?, register_assets = ?, page_settings = ?, admin_page = ?, can_chat = ?, can_feed = ?
                 WHERE user_id = ?`,
-                [view_assets, register_assets, page_settings, admin_page, id]
+                [view_assets, register_assets, page_settings, admin_page, can_chat, can_feed, id]
             );
         }
 

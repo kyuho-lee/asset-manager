@@ -227,11 +227,13 @@ router.post('/login', async (req, res) => {
             joinDate: user.join_date,
             lastLogin: user.last_login,
             permissions: {
-                viewAssets: user.view_assets,
-                registerAssets: user.register_assets,
-                pageSettings: user.page_settings,
-                adminPage: user.admin_page
-            }
+                viewAssets: user.can_view_assets === 1,
+                registerAssets: user.can_register_assets === 1,
+                pageSettings: user.can_page_settings === 1,
+                adminPage: user.can_admin_page === 1,
+                chat: user.can_chat === 1,
+                feed: user.can_feed === 1
+            }   
         };
 
         res.json({ 

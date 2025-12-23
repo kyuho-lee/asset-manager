@@ -471,6 +471,8 @@ function applyPermissions(user) {
     var navDashboard = document.getElementById('navDashboard');
     var navSettings = document.getElementById('navSettings');
     var navAdmin = document.getElementById('navAdmin');
+    var navChat = document.getElementById('navChat');
+    var navFeed = document.getElementById('navFeed');
     
     // 기본값 설정
     if (!user.permissions) {
@@ -478,16 +480,20 @@ function applyPermissions(user) {
             viewAssets: true,
             registerAssets: true,
             pageSettings: false,
-            adminPage: true
+            adminPage: true,
+            chat: true,
+            feed: true
         };
     }
     
     // 메뉴 표시/숨김
     if (navList) navList.style.display = user.permissions.viewAssets ? 'block' : 'none';
     if (navRegister) navRegister.style.display = user.permissions.registerAssets ? 'block' : 'none';
-    if (navDashboard) navDashboard.style.display = user.permissions.viewAssets ? 'block' : 'none'; // 현황은 자산 조회 권한과 동일
+    if (navDashboard) navDashboard.style.display = user.permissions.viewAssets ? 'block' : 'none';
     if (navSettings) navSettings.style.display = user.permissions.pageSettings ? 'block' : 'none';
     if (navAdmin) navAdmin.style.display = user.permissions.adminPage ? 'block' : 'none';
+    if (navChat) navChat.style.display = user.permissions.chat ? 'block' : 'none';
+    if (navFeed) navFeed.style.display = user.permissions.feed ? 'block' : 'none';
 }
 
 // 로그아웃
@@ -1847,6 +1853,8 @@ async function loadUsers() {
             html += '<span class="badge ' + (user.permissions.registerAssets ? 'badge-active' : 'badge-inactive') + '">자산 등록</span>';
             html += '<span class="badge ' + (user.permissions.pageSettings ? 'badge-active' : 'badge-inactive') + '">페이지 관리</span>';
             html += '<span class="badge ' + (user.permissions.adminPage ? 'badge-active' : 'badge-inactive') + '">관리자</span>';
+            html += '<span class="badge ' + (user.permissions.chat ? 'badge-active' : 'badge-inactive') + '">채팅</span>';
+            html += '<span class="badge ' + (user.permissions.feed ? 'badge-active' : 'badge-inactive') + '">피드</span>';
             html += '</div>';
             
             html += '</div>';
@@ -1877,6 +1885,8 @@ async function openPermissionModal(userId) {
         document.getElementById('permRegisterAssets').checked = user.permissions.registerAssets;
         document.getElementById('permPageSettings').checked = user.permissions.pageSettings;
         document.getElementById('permAdminPage').checked = user.permissions.adminPage;
+        document.getElementById('permChat').checked = user.permissions.chat;
+        document.getElementById('permFeed').checked = user.permissions.feed;
         
         document.getElementById('permissionModal').classList.add('active');
         document.body.classList.add('modal-open');
@@ -1899,7 +1909,9 @@ async function savePermissions() {
         view_assets: document.getElementById('permViewAssets').checked,
         register_assets: document.getElementById('permRegisterAssets').checked,
         page_settings: document.getElementById('permPageSettings').checked,
-        admin_page: document.getElementById('permAdminPage').checked
+        admin_page: document.getElementById('permAdminPage').checked,
+        can_chat: document.getElementById('permChat').checked,
+        can_feed: document.getElementById('permFeed').checked
     };
     
     try {
