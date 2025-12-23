@@ -282,17 +282,8 @@ async function recordLoginAttempt(email, success) {
 
 module.exports = router;
 
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // 임시 비밀번호 생성
 function generateTempPassword() {
@@ -342,8 +333,9 @@ router.post('/forgot-password', async (req, res) => {
         );
 
         // 이메일 발송
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
+        console.log('이메일 발송 시도:', email);
+        const { data, error } = await resend.emails.send({
+            from: 'Asset Manager <onboarding@resend.dev>',
             to: email,
             subject: '[자산관리시스템] 임시 비밀번호 안내',
             html: `
@@ -360,10 +352,16 @@ router.post('/forgot-password', async (req, res) => {
                     <p style="color: #999; font-size: 12px;">본 메일은 발신 전용입니다.</p>
                 </div>
             `
-        };
-console.log('이메일 발송 시도:', email);
-var info = await transporter.sendMail(mailOptions);
-console.log('이메일 발송 성공:', info.messageId);
+        });
+
+        if (error) {
+            console.error('이메일 발송 실패:', error);
+            throw new Error('이메일 발송 실패');
+        }
+
+        console.log('이메일 발송 성공:', data.id);
+
+
         res.json({ 
             success: true, 
             message: '임시 비밀번호가 이메일로 발송되었습니다.' 
