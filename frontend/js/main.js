@@ -3477,9 +3477,11 @@ function renderPostCard(post) {
     html += '</div>';
     html += '</div>';
     
-    // 삭제 버튼 (본인 게시물만)
+    // 삭제 버튼 (본인 게시물만) 또는 팔로우 버튼
     if (isMyPost) {
         html += '<button onclick="deletePost(' + post.id + ')" style="background: none; border: none; color: #999; cursor: pointer; font-size: 18px;" title="삭제">🗑️</button>';
+    } else {
+        html += '<button id="follow-btn-' + post.user_id + '" onclick="toggleFollowFromFeed(' + post.user_id + ')" style="padding: 6px 14px; border: 1.5px solid #0066cc; background: white; color: #0066cc; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 600;">팔로우</button>';
     }
     html += '</div>';
     
@@ -3985,8 +3987,15 @@ function switchMyPageTab(tab) {
     if (tab === 'info') {
         document.querySelector('.mypage-tab:nth-child(1)').classList.add('active');
         document.getElementById('myPageInfo').classList.add('active');
-    } else if (tab === 'password') {
+    } else if (tab === 'follow') {
         document.querySelector('.mypage-tab:nth-child(2)').classList.add('active');
+        document.getElementById('myPageFollow').classList.add('active');
+        
+        // 팔로우 데이터 로드
+        loadFollowCounts();
+        showFollowList('followers');
+    } else if (tab === 'password') {
+        document.querySelector('.mypage-tab:nth-child(3)').classList.add('active');
         document.getElementById('myPagePassword').classList.add('active');
         
         // 비밀번호 입력 필드 초기화
@@ -4279,3 +4288,157 @@ document.addEventListener('click', function(e) {
 });
 
 console.log('✅ 이모티콘 기능 로드 완료');
+
+
+// ========== 팔로우 기능 ==========
+
+// 팔로우/팔로잉 수 로드
+async function loadFollowCounts() {
+    try {
+        var response = await apiRequest('/follows/count/' + currentUser.id, { method: 'GET' });
+        
+        document.getElementById('myFollowerCount').textContent = response.data.followers;
+        document.getElementById('myFollowingCount').textContent = response.data.following;
+    } catch (error) {
+        console.error('팔로우 수 로드 오류:', error);
+    }
+}
+
+// 팔로우 목록 표시
+async function showFollowList(type) {
+    // 탭 버튼 활성화
+    document.getElementById('followersTabBtn').classList.remove('active');
+    document.getElementById('followingTabBtn').classList.remove('active');
+    
+    if (type === 'followers') {
+        document.getElementById('followersTabBtn').classList.add('active');
+    } else {
+        document.getElementById('followingTabBtn').classList.add('active');
+    }
+    
+    try {
+        var response = await apiRequest('/follows/' + type, { method: 'GET' });
+        var list = response.data || [];
+        
+        renderFollowList(list, type);
+    } catch (error) {
+        console.error('팔로우 목록 로드 오류:', error);
+    }
+}
+
+// 팔로우 목록 렌더링
+function renderFollowList(list, type) {
+    var container = document.getElementById('followListContainer');
+    
+    if (list.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">' + 
+            (type === 'followers' ? '팔로워가 없습니다.' : '팔로잉이 없습니다.') + '</p>';
+        return;
+    }
+    
+    var html = '';
+    for (var i = 0; i < list.length; i++) {
+        var user = list[i];
+        var initial = user.name.charAt(0).toUpperCase();
+        
+        html += '<div class="follow-item">';
+        html += '<div class="follow-user-info">';
+        html += '<div class="follow-avatar">' + initial + '</div>';
+        html += '<div>';
+        html += '<div class="follow-user-name">' + user.name + '</div>';
+        html += '<div class="follow-user-email">' + user.email + '</div>';
+        html += '</div>';
+        html += '</div>';
+        
+        if (type === 'followers') {
+            html += '<button class="btn-follow following" onclick="unfollowUser(' + user.id + ')">팔로워 삭제</button>';
+        } else {
+            html += '<button class="btn-follow following" onclick="unfollowUser(' + user.id + ')">언팔로우</button>';
+        }
+        
+        html += '</div>';
+    }
+    
+    container.innerHTML = html;
+}
+
+// 팔로우하기
+async function followUser(userId) {
+    try {
+        var response = await apiRequest('/follows/' + userId, { method: 'POST' });
+        
+        if (response.success) {
+            alert('팔로우했습니다!');
+            loadFollowCounts();
+            showFollowList('following');
+        } else {
+            alert(response.message);
+        }
+    } catch (error) {
+        console.error('팔로우 오류:', error);
+        alert('팔로우에 실패했습니다.');
+    }
+}
+
+// 언팔로우
+async function unfollowUser(userId) {
+    if (!confirm('정말 언팔로우 하시겠습니까?')) return;
+    
+    try {
+        var response = await apiRequest('/follows/' + userId, { method: 'DELETE' });
+        
+        if (response.success) {
+            loadFollowCounts();
+            // 현재 보고 있는 탭 새로고침
+            var isFollowersTab = document.getElementById('followersTabBtn').classList.contains('active');
+            showFollowList(isFollowersTab ? 'followers' : 'following');
+        }
+    } catch (error) {
+        console.error('언팔로우 오류:', error);
+        alert('언팔로우에 실패했습니다.');
+    }
+}
+
+console.log('✅ 팔로우 기능 로드 완료');
+
+// 피드에서 팔로우 토글
+async function toggleFollowFromFeed(userId) {
+    var btn = document.getElementById('follow-btn-' + userId);
+    if (!btn) return;
+    
+    var isFollowing = btn.textContent === '팔로잉';
+    
+    try {
+        if (isFollowing) {
+            // 언팔로우
+            await apiRequest('/follows/' + userId, { method: 'DELETE' });
+            btn.textContent = '팔로우';
+            btn.style.background = 'white';
+            btn.style.color = '#0066cc';
+        } else {
+            // 팔로우
+            await apiRequest('/follows/' + userId, { method: 'POST' });
+            btn.textContent = '팔로잉';
+            btn.style.background = '#0066cc';
+            btn.style.color = 'white';
+        }
+    } catch (error) {
+        console.error('팔로우 토글 오류:', error);
+    }
+}
+
+// 피드 로드 시 팔로우 상태 확인
+async function checkFollowStatus(userId) {
+    try {
+        var response = await apiRequest('/follows/status/' + userId, { method: 'GET' });
+        var btn = document.getElementById('follow-btn-' + userId);
+        
+        if (btn && response.isFollowing) {
+            btn.textContent = '팔로잉';
+            btn.style.background = '#0066cc';
+            btn.style.color = 'white';
+        }
+    } catch (error) {
+        console.error('팔로우 상태 확인 오류:', error);
+    }
+}

@@ -35,6 +35,7 @@ const settingsRoutes = require('./routes/settings');
 const chatRoutes = require('./routes/chat');  
 const feedRoutes = require('./routes/feed');
 const notificationsRoutes = require('./routes/notifications');
+const followsRoutes = require('./routes/follows');
 
 
 app.use('/api/auth', authRoutes);
@@ -44,6 +45,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/chat', chatRoutes);  
 app.use('/api/feed', feedRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/follows', followsRoutes);
 
 // ========== 기본 라우트 ==========
 

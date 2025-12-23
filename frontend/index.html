@@ -797,6 +797,7 @@ button[onclick*="downloadExcel"]:hover {
                 <!-- 탭 메뉴 -->
                 <div class="mypage-tabs">
                     <button class="mypage-tab active" onclick="switchMyPageTab('info')">📋 내 정보</button>
+                    <button class="mypage-tab" onclick="switchMyPageTab('follow')">👥 팔로우</button>
                     <button class="mypage-tab" onclick="switchMyPageTab('password')">🔑 비밀번호 변경</button>
                 </div>
                 
@@ -819,6 +820,36 @@ button[onclick*="downloadExcel"]:hover {
                     </div>
                 </div>
                 
+                <!-- 팔로우 탭 -->
+                <div id="myPageFollow" class="mypage-content">
+                    <div style="padding: 25px;">
+                        <!-- 팔로워/팔로잉 카운트 -->
+                        <div style="display: flex; justify-content: center; gap: 40px; margin-bottom: 25px;">
+                            <div style="text-align: center; cursor: pointer;" onclick="showFollowList('followers')">
+                                <div style="font-size: 24px; font-weight: bold; color: #0066cc;" id="myFollowerCount">0</div>
+                                <div style="color: #666; font-size: 14px;">팔로워</div>
+                            </div>
+                            <div style="text-align: center; cursor: pointer;" onclick="showFollowList('following')">
+                                <div style="font-size: 24px; font-weight: bold; color: #0066cc;" id="myFollowingCount">0</div>
+                                <div style="color: #666; font-size: 14px;">팔로잉</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 팔로우 목록 -->
+                        <div style="border-top: 1px solid #eee; padding-top: 20px;">
+                            <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
+                                <button class="follow-tab-btn active" id="followersTabBtn" onclick="showFollowList('followers')">팔로워</button>
+                                <button class="follow-tab-btn" id="followingTabBtn" onclick="showFollowList('following')">팔로잉</button>
+                            </div>
+                            <div id="followListContainer" style="max-height: 250px; overflow-y: auto;">
+                                <p style="text-align: center; color: #999; padding: 20px;">목록이 없습니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
                 <!-- 비밀번호 변경 탭 -->
                 <div id="myPagePassword" class="mypage-content">
                     <div style="padding: 25px;">

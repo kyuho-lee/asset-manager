@@ -2070,3 +2070,99 @@ body.modal-open {
         font-size: 20px;
     }
 }
+
+/* ========== 팔로우 스타일 ========== */
+.follow-tab-btn {
+    padding: 8px 20px;
+    border: none;
+    background: #f0f0f0;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    transition: all 0.2s;
+}
+
+.follow-tab-btn.active {
+    background: #0066cc;
+    color: white;
+}
+
+.follow-tab-btn:hover {
+    background: #e0e0e0;
+}
+
+.follow-tab-btn.active:hover {
+    background: #0052a3;
+}
+
+.follow-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.follow-item:last-child {
+    border-bottom: none;
+}
+
+.follow-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.follow-avatar {
+    width: 40px;
+    height: 40px;
+    background: #0066cc;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.follow-user-name {
+    font-weight: 600;
+    color: #333;
+}
+
+.follow-user-email {
+    font-size: 12px;
+    color: #999;
+}
+
+.btn-follow {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-follow.following {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.btn-follow.following:hover {
+    background: #ff4444;
+    color: white;
+}
+
+.btn-follow.not-following {
+    background: #0066cc;
+    color: white;
+}
+
+.btn-follow.not-following:hover {
+    background: #0052a3;
+}
