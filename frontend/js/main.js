@@ -288,8 +288,14 @@ async function saveColumnSettings(columns) {
 function switchTab(tab) {
     var loginForm = document.getElementById('loginForm');
     var signupForm = document.getElementById('signupForm');
+    var forgotForm = document.getElementById('forgotPasswordForm');
     var loginTab = document.getElementById('loginTab');
     var signupTab = document.getElementById('signupTab');
+    
+    // 비밀번호 찾기 폼은 항상 숨김
+    if (forgotForm) {
+        forgotForm.classList.add('hidden');
+    }
     
     if (tab === 'login') {
         loginForm.classList.remove('hidden');
