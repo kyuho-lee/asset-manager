@@ -31,8 +31,8 @@ button[onclick*="downloadExcel"]:hover {
 </style>
 </head>
 <body>
-    <div class="header">
-        <!-- 햄버거 버튼 (모바일용) -->
+   <div class="header">
+    <!-- 햄버거 버튼 (모바일용) -->
         <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMobileMenu()">
             <span></span>
             <span></span>
@@ -42,8 +42,16 @@ button[onclick*="downloadExcel"]:hover {
         <div class="logo">반갑다 친구들 ^^</div>
         
         <div class="user-info" id="userInfo" style="display: none;">
-            <span class="user-name" id="currentUser"></span>
-            <button class="btn-logout" id="logoutBtn">로그아웃</button>
+            <div class="user-dropdown">
+                <button class="user-dropdown-btn" onclick="toggleUserDropdown()">
+                    <span class="user-name" id="currentUser"></span>
+                    <span class="dropdown-arrow">▼</span>
+                </button>
+                <div class="user-dropdown-menu" id="userDropdownMenu">
+                    <a href="#" onclick="openMyPage(); closeUserDropdown();">👤 마이페이지</a>
+                    <a href="#" onclick="logout(); closeUserDropdown();">🚪 로그아웃</a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -734,6 +742,57 @@ button[onclick*="downloadExcel"]:hover {
             </div>
         </div>
     </div>
+
+    <!-- 마이페이지 모달 -->
+    <div id="myPageModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>👤 마이페이지</h2>
+                <button class="close-btn" onclick="closeMyPage()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- 내 정보 -->
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #002c5f; font-size: 16px;">📋 내 정보</h3>
+                    <p style="margin: 8px 0;"><strong>이름:</strong> <span id="myName">-</span></p>
+                    <p style="margin: 8px 0;"><strong>이메일:</strong> <span id="myEmail">-</span></p>
+                    <p style="margin: 8px 0;"><strong>가입일:</strong> <span id="myJoinDate">-</span></p>
+                    <p style="margin: 8px 0;"><strong>마지막 로그인:</strong> <span id="myLastLogin">-</span></p>
+                </div>
+                
+                <!-- 내 권한 -->
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #002c5f; font-size: 16px;">🔐 내 권한</h3>
+                    <div id="myPermissions" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <!-- 동적으로 생성 -->
+                    </div>
+                </div>
+                
+                <!-- 비밀번호 변경 -->
+                <div style="background: #fff3cd; padding: 20px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                    <h3 style="margin-bottom: 15px; color: #856404; font-size: 16px;">🔑 비밀번호 변경</h3>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="font-size: 14px;">현재 비밀번호</label>
+                        <input type="password" id="currentPassword" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="font-size: 14px;">새 비밀번호</label>
+                        <input type="password" id="newPassword" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="font-size: 14px;">새 비밀번호 확인</label>
+                        <input type="password" id="confirmNewPassword" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
+                    </div>
+                    <button onclick="changePassword()" style="width: 100%; padding: 12px; background: #0066cc; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                        비밀번호 변경
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>   

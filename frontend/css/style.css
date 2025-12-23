@@ -1734,3 +1734,89 @@ body.modal-open {
 .btn-cancel:hover {
     background: #5a6268;
 }
+
+/* ========== 사용자 드롭다운 메뉴 ========== */
+.user-dropdown {
+    position: relative;
+}
+
+.user-dropdown-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.user-dropdown-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dropdown-arrow {
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+
+.user-dropdown.active .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.user-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    min-width: 160px;
+    overflow: hidden;
+    z-index: 1000;
+}
+
+.user-dropdown-menu.active {
+    display: block;
+}
+
+.user-dropdown-menu a {
+    display: block;
+    padding: 12px 16px;
+    color: #333;
+    text-decoration: none;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.user-dropdown-menu a:hover {
+    background: #f5f5f5;
+}
+
+.user-dropdown-menu a:first-child {
+    border-bottom: 1px solid #eee;
+}
+
+/* 모바일 드롭다운 */
+@media (max-width: 768px) {
+    .user-dropdown-btn .user-name {
+        display: none;
+    }
+    
+    .user-dropdown-btn::before {
+        content: '👤';
+        font-size: 18px;
+    }
+    
+    .dropdown-arrow {
+        display: none;
+    }
+    
+    .user-dropdown-menu {
+        right: -10px;
+    }
+}

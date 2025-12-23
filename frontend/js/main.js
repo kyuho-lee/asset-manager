@@ -3838,3 +3838,141 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 console.log('✅ 비밀번호 찾기 기능 로드 완료');
+
+// ========== 마이페이지 기능 ==========
+
+// 사용자 드롭다운 토글
+function toggleUserDropdown() {
+    var dropdown = document.querySelector('.user-dropdown');
+    var menu = document.getElementById('userDropdownMenu');
+    
+    dropdown.classList.toggle('active');
+    menu.classList.toggle('active');
+}
+
+// 드롭다운 닫기
+function closeUserDropdown() {
+    var dropdown = document.querySelector('.user-dropdown');
+    var menu = document.getElementById('userDropdownMenu');
+    
+    if (dropdown) dropdown.classList.remove('active');
+    if (menu) menu.classList.remove('active');
+}
+
+// 바깥 클릭 시 드롭다운 닫기
+document.addEventListener('click', function(e) {
+    var dropdown = document.querySelector('.user-dropdown');
+    if (dropdown && !dropdown.contains(e.target)) {
+        closeUserDropdown();
+    }
+});
+
+// 마이페이지 열기
+function openMyPage() {
+    var modal = document.getElementById('myPageModal');
+    modal.classList.add('active');
+    document.body.classList.add('modal-open');
+    
+    // 내 정보 표시
+    if (currentUser) {
+        document.getElementById('myName').textContent = currentUser.name || '-';
+        document.getElementById('myEmail').textContent = currentUser.email || '-';
+        document.getElementById('myJoinDate').textContent = currentUser.joinDate ? 
+            new Date(currentUser.joinDate).toLocaleDateString('ko-KR') : '-';
+        document.getElementById('myLastLogin').textContent = currentUser.lastLogin ? 
+            new Date(currentUser.lastLogin).toLocaleString('ko-KR') : '-';
+        
+        // 권한 표시
+        var permissionsHtml = '';
+        if (currentUser.permissions) {
+            if (currentUser.permissions.viewAssets) {
+                permissionsHtml += '<span class="badge badge-active">자산 조회</span>';
+            }
+            if (currentUser.permissions.registerAssets) {
+                permissionsHtml += '<span class="badge badge-active">자산 등록</span>';
+            }
+            if (currentUser.permissions.pageSettings) {
+                permissionsHtml += '<span class="badge badge-active">페이지 관리</span>';
+            }
+            if (currentUser.permissions.adminPage) {
+                permissionsHtml += '<span class="badge badge-active">관리자</span>';
+            }
+        }
+        
+        if (!permissionsHtml) {
+            permissionsHtml = '<span style="color: #999;">권한이 없습니다.</span>';
+        }
+        
+        document.getElementById('myPermissions').innerHTML = permissionsHtml;
+    }
+    
+    // 비밀번호 입력 필드 초기화
+    document.getElementById('currentPassword').value = '';
+    document.getElementById('newPassword').value = '';
+    document.getElementById('confirmNewPassword').value = '';
+}
+
+// 마이페이지 닫기
+function closeMyPage() {
+    var modal = document.getElementById('myPageModal');
+    modal.classList.remove('active');
+    document.body.classList.remove('modal-open');
+}
+
+// 마이페이지 모달 바깥 클릭 시 닫기
+document.addEventListener('DOMContentLoaded', function() {
+    var myPageModal = document.getElementById('myPageModal');
+    if (myPageModal) {
+        myPageModal.addEventListener('click', function(e) {
+            if (e.target === myPageModal) {
+                closeMyPage();
+            }
+        });
+    }
+});
+
+// 비밀번호 변경
+async function changePassword() {
+    var currentPw = document.getElementById('currentPassword').value;
+    var newPw = document.getElementById('newPassword').value;
+    var confirmPw = document.getElementById('confirmNewPassword').value;
+    
+    // 유효성 검사
+    if (!currentPw || !newPw || !confirmPw) {
+        alert('모든 필드를 입력해주세요.');
+        return;
+    }
+    
+    if (newPw !== confirmPw) {
+        alert('새 비밀번호가 일치하지 않습니다.');
+        return;
+    }
+    
+    if (newPw.length < 8) {
+        alert('새 비밀번호는 최소 8자 이상이어야 합니다.');
+        return;
+    }
+    
+    try {
+        var response = await apiRequest('/auth/change-password', {
+            method: 'POST',
+            body: JSON.stringify({
+                currentPassword: currentPw,
+                newPassword: newPw
+            })
+        });
+        
+        if (response.success) {
+            alert('비밀번호가 변경되었습니다. 다시 로그인해주세요.');
+            closeMyPage();
+            logout();
+        } else {
+            alert(response.message || '비밀번호 변경에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('비밀번호 변경 오류:', error);
+        alert('비밀번호 변경 중 오류가 발생했습니다.');
+    }
+}
+
+console.log('✅ 마이페이지 기능 로드 완료');

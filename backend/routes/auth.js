@@ -280,6 +280,69 @@ async function recordLoginAttempt(email, success) {
     }
 }
 
+// 비밀번호 변경
+router.post('/change-password', async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        
+        // 토큰에서 사용자 정보 가져오기
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({ 
+                success: false, 
+                message: '로그인이 필요합니다.' 
+            });
+        }
+        
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const userId = decoded.id;
+        
+        // 현재 비밀번호 확인
+        const [users] = await db.query(
+            'SELECT password FROM users WHERE id = ?',
+            [userId]
+        );
+        
+        if (users.length === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                message: '사용자를 찾을 수 없습니다.' 
+            });
+        }
+        
+        const isValid = await bcrypt.compare(currentPassword, users[0].password);
+        
+        if (!isValid) {
+            return res.status(400).json({ 
+                success: false, 
+                message: '현재 비밀번호가 일치하지 않습니다.' 
+            });
+        }
+        
+        // 새 비밀번호 해싱 후 저장
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await db.query(
+            'UPDATE users SET password = ? WHERE id = ?',
+            [hashedPassword, userId]
+        );
+        
+        res.json({ 
+            success: true, 
+            message: '비밀번호가 변경되었습니다.' 
+        });
+        
+    } catch (error) {
+        console.error('비밀번호 변경 오류:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: '서버 오류가 발생했습니다.' 
+        });
+    }
+});
+
+
 module.exports = router;
 
 const { Resend } = require('resend');
