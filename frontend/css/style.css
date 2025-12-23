@@ -553,7 +553,7 @@ body {
 }
 
 .modal.active {
-    display: flex;
+    display: flex !important;
     opacity: 1;
 }
 
