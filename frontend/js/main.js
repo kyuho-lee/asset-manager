@@ -4525,7 +4525,7 @@ async function loadStories() {
 
 // 스토리 업로드 모달 열기
 function openStoryUploadModal() {
-    document.getElementById('storyUploadModal').style.display = 'flex';
+    document.getElementById('storyUploadModal').classList.add('active');
     document.getElementById('storyPreviewImage').style.display = 'none';
     document.getElementById('storyImageLabel').style.display = 'block';
     document.getElementById('storyImageInput').value = '';
@@ -4534,7 +4534,7 @@ function openStoryUploadModal() {
 
 // 스토리 업로드 모달 닫기
 function closeStoryUploadModal() {
-    document.getElementById('storyUploadModal').style.display = 'none';
+    document.getElementById('storyUploadModal').classList.remove('active');
 }
 
 // 스토리 이미지 미리보기
