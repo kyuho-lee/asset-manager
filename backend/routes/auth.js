@@ -152,7 +152,7 @@ router.post('/login', async (req, res) => {
 
         // 사용자 조회
         const [users] = await db.query(
-            'SELECT u.*, p.view_assets, p.register_assets, p.page_settings, p.admin_page, p.can_chat, p.can_feed FROM users u LEFT JOIN permissions p ON u.id = p.user_id WHERE u.email = ?',
+            'SELECT u.*, p.view_assets, p.register_assets, p.page_settings, p.admin_page, p.can_chat, p.can_feed, p.can_reels FROM users u LEFT JOIN permissions p ON u.id = p.user_id WHERE u.email = ?',
             [email.toLowerCase()]
         );
 
@@ -232,7 +232,8 @@ router.post('/login', async (req, res) => {
                 pageSettings: user.page_settings === 1,
                 adminPage: user.admin_page === 1,
                 chat: user.can_chat === 1,
-                feed: user.can_feed === 1
+                feed: user.can_feed === 1,
+                reels: user.can_reels === 1
             }   
         };
 
