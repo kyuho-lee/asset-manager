@@ -57,7 +57,7 @@ router.get('/:id', async (req, res) => {
         const [users] = await db.query(
             `SELECT u.id, u.name, u.email, u.join_date, u.last_login,
                     p.view_assets, p.register_assets, p.page_settings, p.admin_page, p.can_chat, p.can_feed, p.can_reels
-             FROM users u
+            FROM users u
              LEFT JOIN permissions p ON u.id = p.user_id
              WHERE u.id = ?`,
             [id]
