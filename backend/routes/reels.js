@@ -15,16 +15,18 @@ router.get('/', async (req, res) => {
         
         const [reels] = await db.query(`
             SELECT 
-                r.*,
-                u.name as user_name,
-                (SELECT COUNT(*) FROM reel_likes WHERE reel_id = r.id) as like_count,
-                (SELECT COUNT(*) FROM reel_comments WHERE reel_id = r.id) as comment_count,
-                (SELECT COUNT(*) FROM reel_likes WHERE reel_id = r.id AND user_id = ?) as is_liked
-            FROM reels r
-            JOIN users u ON r.user_id = u.id
-            ORDER BY r.created_at DESC
-            LIMIT ? OFFSET ?
-        `, [userId, limit, offset]);
+            r.*,
+            u.name as user_name,
+            pr.profile_image as user_profile_image,
+            (SELECT COUNT(*) FROM reel_likes WHERE reel_id = r.id) as like_count,
+            (SELECT COUNT(*) FROM reel_comments WHERE reel_id = r.id) as comment_count,
+            (SELECT COUNT(*) FROM reel_likes WHERE reel_id = r.id AND user_id = ?) as is_liked
+        FROM reels r
+        JOIN users u ON r.user_id = u.id
+        LEFT JOIN profiles pr ON r.user_id = pr.user_id
+        ORDER BY r.created_at DESC
+        LIMIT ? OFFSET ?
+    `, [userId, limit, offset]);
         
         res.json({ success: true, data: reels });
     } catch (error) {

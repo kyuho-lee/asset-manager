@@ -4876,7 +4876,21 @@ async function showCurrentReel() {
     
     // UI 업데이트
     document.getElementById('reelViewerVideo').src = reel.video_url;
-    document.getElementById('reelUserName').textContent = '@' + reel.user_name;
+
+    // 프로필 이미지 + 이름
+    var reelUserInfoEl = document.getElementById('reelUserInfo');
+    var userHtml = '<div style="display: flex; align-items: center; gap: 10px;">';
+    userHtml += '<div style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; border: 2px solid white; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold;">';
+    if (reel.user_profile_image) {
+        userHtml += '<img src="' + reel.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">';
+    } else {
+        userHtml += reel.user_name.charAt(0).toUpperCase();
+    }
+    userHtml += '</div>';
+    userHtml += '<span style="font-weight: 600;">@' + reel.user_name + '</span>';
+    userHtml += '</div>';
+    reelUserInfoEl.innerHTML = userHtml;
+
     document.getElementById('reelCaption').textContent = reel.caption || '';
     document.getElementById('reelLikeCount').textContent = reel.like_count || 0;
     document.getElementById('reelCommentCount').textContent = reel.comment_count || 0;
