@@ -3220,8 +3220,8 @@ body.modal-open {
         display: none;
     }
     
-    .chat-main.active {
-        display: flex;
+    .chat-main.mobile-active {
+        display: flex !important;
     }
     
     /* 피드 반응형 */
