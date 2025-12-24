@@ -3349,3 +3349,63 @@ body.modal-open {
     color: var(--text-muted);
     max-width: 280px;
 }
+
+/* ========== 모달 닫기 버튼 개선 ========== */
+.close-modal {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #666;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.close-modal:hover {
+    background: #e0e0e0;
+    color: #333;
+}
+
+/* ========== 모바일 채팅 헤더 개선 ========== */
+@media (max-width: 768px) {
+    .chat-header {
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 10;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .chat-header #backToChatList {
+        padding: 8px 14px;
+        background: #f1f5f9;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+}
+
+/* ========== 릴스 뷰어 영상 중앙 정렬 ========== */
+.reel-viewer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reel-viewer-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
