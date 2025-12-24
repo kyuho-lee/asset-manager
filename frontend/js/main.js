@@ -4877,58 +4877,34 @@ async function showCurrentReel() {
     // 영상
     document.getElementById('reelViewerVideo').src = reel.video_url;
     
-    // 프로필 아바타 (웹 + 모바일)
-    var avatarHtml = '';
+    // 프로필 아바타
+    var avatarEl = document.getElementById('reelUserAvatar');
     if (reel.user_profile_image) {
-        avatarHtml = '<img src="' + reel.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">';
+        avatarEl.innerHTML = '<img src="' + reel.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">';
     } else {
-        avatarHtml = reel.user_name.charAt(0).toUpperCase();
+        avatarEl.innerHTML = '';
+        avatarEl.textContent = reel.user_name.charAt(0).toUpperCase();
     }
     
-    document.getElementById('reelUserAvatar').innerHTML = avatarHtml;
-    if (document.getElementById('reelUserAvatarMobile')) {
-        document.getElementById('reelUserAvatarMobile').innerHTML = avatarHtml;
-    }
-    
-    // 이름 (웹 + 모바일)
+    // 이름
     document.getElementById('reelUserName').textContent = reel.user_name;
-    if (document.getElementById('reelUserNameMobile')) {
-        document.getElementById('reelUserNameMobile').textContent = reel.user_name;
-    }
     
-    // 캡션 (웹 + 모바일)
+    // 캡션
     document.getElementById('reelCaption').textContent = reel.caption || '';
-    if (document.getElementById('reelCaptionMobile')) {
-        document.getElementById('reelCaptionMobile').textContent = reel.caption || '';
-    }
     
-    // 좋아요 (웹 + 모바일)
-    var likeIcon = reel.is_liked ? '❤️' : '🤍';
+    // 좋아요
     document.getElementById('reelLikeCount').textContent = reel.like_count || 0;
-    document.getElementById('reelLikeBtn').textContent = likeIcon;
-    if (document.getElementById('reelLikeCountMobile')) {
-        document.getElementById('reelLikeCountMobile').textContent = reel.like_count || 0;
-    }
-    if (document.getElementById('reelLikeBtnMobile')) {
-        document.getElementById('reelLikeBtnMobile').textContent = likeIcon;
-    }
+    document.getElementById('reelLikeBtn').textContent = reel.is_liked ? '❤️' : '🤍';
     
-    // 댓글 (웹 + 모바일)
+    // 댓글
     document.getElementById('reelCommentCount').textContent = reel.comment_count || 0;
-    if (document.getElementById('reelCommentCountMobile')) {
-        document.getElementById('reelCommentCountMobile').textContent = reel.comment_count || 0;
-    }
     
     // 팔로우 버튼 (본인이면 숨김)
     var followBtn = document.getElementById('reelFollowBtn');
-    var followBtnMobile = document.getElementById('reelFollowBtnMobile');
-    
     if (currentUser && reel.user_id === currentUser.id) {
         followBtn.style.display = 'none';
-        if (followBtnMobile) followBtnMobile.style.display = 'none';
     } else {
         followBtn.style.display = 'inline-block';
-        if (followBtnMobile) followBtnMobile.style.display = 'inline-block';
         checkReelFollowStatus(reel.user_id);
     }
 }
@@ -4938,67 +4914,21 @@ async function checkReelFollowStatus(userId) {
     try {
         var response = await apiRequest('/follows/status/' + userId, { method: 'GET' });
         var btn = document.getElementById('reelFollowBtn');
-        var btnMobile = document.getElementById('reelFollowBtnMobile');
         
         if (response.isFollowing) {
             btn.textContent = '팔로잉';
-            btn.style.background = 'rgba(255,255,255,0.1)';
-            btn.style.borderColor = '#555';
-            if (btnMobile) {
-                btnMobile.textContent = '팔로잉';
-                btnMobile.style.background = 'rgba(255,255,255,0.2)';
-                btnMobile.style.borderColor = 'transparent';
-            }
+            btn.style.background = 'rgba(255,255,255,0.2)';
+            btn.style.borderColor = 'transparent';
         } else {
             btn.textContent = '팔로우';
             btn.style.background = 'transparent';
-            btn.style.borderColor = '#555';
-            if (btnMobile) {
-                btnMobile.textContent = '팔로우';
-                btnMobile.style.background = 'transparent';
-                btnMobile.style.borderColor = 'white';
-            }
+            btn.style.borderColor = 'white';
         }
     } catch (error) {
         console.error('팔로우 상태 확인 오류:', error);
     }
 }
 
-// 릴스에서 팔로우 토글
-async function toggleReelFollow() {
-    var reel = reelsList[currentReelIndex];
-    if (!reel) return;
-    
-    var btn = document.getElementById('reelFollowBtn');
-    var btnMobile = document.getElementById('reelFollowBtnMobile');
-    var isFollowing = btn.textContent === '팔로잉';
-    
-    try {
-        if (isFollowing) {
-            await apiRequest('/follows/' + reel.user_id, { method: 'DELETE' });
-            btn.textContent = '팔로우';
-            btn.style.background = 'transparent';
-            btn.style.borderColor = '#555';
-            if (btnMobile) {
-                btnMobile.textContent = '팔로우';
-                btnMobile.style.background = 'transparent';
-                btnMobile.style.borderColor = 'white';
-            }
-        } else {
-            await apiRequest('/follows/' + reel.user_id, { method: 'POST' });
-            btn.textContent = '팔로잉';
-            btn.style.background = 'rgba(255,255,255,0.1)';
-            btn.style.borderColor = '#555';
-            if (btnMobile) {
-                btnMobile.textContent = '팔로잉';
-                btnMobile.style.background = 'rgba(255,255,255,0.2)';
-                btnMobile.style.borderColor = 'transparent';
-            }
-        }
-    } catch (error) {
-        console.error('팔로우 토글 오류:', error);
-    }
-}
 // 릴스에서 팔로우 토글
 async function toggleReelFollow() {
     var reel = reelsList[currentReelIndex];

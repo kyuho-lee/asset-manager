@@ -3463,90 +3463,75 @@ body.modal-open {
 }
 
 
-/* ========== 릴스 뷰어 반응형 ========== */
+/* ========== 릴스 뷰어 스타일 ========== */
 
-/* 웹 (768px 이상) */
-.reel-container {
-    display: flex;
-    height: 100%;
-    align-items: center;
-    justify-content: center;
-    gap: 40px;
-    padding: 60px 40px;
-}
-
-.reel-video-area {
-    height: 100%;
-    max-height: 85vh;
-    aspect-ratio: 9/16;
-    background: #111;
-    border-radius: 12px;
-    overflow: hidden;
+/* 영상 영역 */
+.reel-video-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 160px;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: #000;
 }
 
-.reel-video-area video {
-    width: 100%;
-    height: 100%;
+.reel-video-wrapper video {
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
 }
 
-.reel-info-area {
-    width: 340px;
-    padding: 30px;
-    background: #111;
-    border-radius: 12px;
-    align-self: center;
+/* 하단 정보 영역 */
+.reel-bottom-area {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 160px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.95));
+    padding: 20px;
+    display: flex;
+    align-items: flex-end;
 }
 
-.reel-mobile-overlay {
-    display: none;
+.reel-info {
+    flex: 1;
+    padding-right: 80px;
 }
 
-/* 모바일 (768px 이하) */
+.reel-actions {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+}
+
+/* 모바일 (768px 이하) - 오버레이 스타일 */
 @media (max-width: 768px) {
-    .reel-container {
-        display: block;
-        padding: 0;
-    }
-    
-    .reel-video-area {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
+    .reel-video-wrapper {
         bottom: 0;
-        max-height: none;
-        aspect-ratio: auto;
-        border-radius: 0;
     }
     
-    .reel-info-area {
-        display: none;
+    .reel-bottom-area {
+        height: auto;
+        padding: 15px;
+        padding-bottom: 80px;
+        background: linear-gradient(transparent, rgba(0,0,0,0.8));
     }
     
-    .reel-mobile-overlay {
-        display: block;
-    }
-    
-    .reel-mobile-actions {
-        position: absolute;
+    .reel-actions {
+        position: fixed;
         right: 15px;
         bottom: 180px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 20px;
-        z-index: 6;
     }
     
-    .reel-mobile-info {
-        position: absolute;
-        bottom: 80px;
-        left: 15px;
-        right: 80px;
-        z-index: 6;
+    .reel-info {
+        padding-right: 60px;
     }
 }
