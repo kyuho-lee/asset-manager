@@ -30,7 +30,8 @@ router.get('/', async (req, res) => {
                 pageSettings: user.page_settings,
                 adminPage: user.admin_page,
                 chat: user.can_chat,
-                feed: user.can_feed
+                feed: user.can_feed,
+                reels: user.can_reels
             }
         }));
 
@@ -55,7 +56,7 @@ router.get('/:id', async (req, res) => {
 
         const [users] = await db.query(
             `SELECT u.id, u.name, u.email, u.join_date, u.last_login,
-                    p.view_assets, p.register_assets, p.page_settings, p.admin_page
+                    p.view_assets, p.register_assets, p.page_settings, p.admin_page, p.can_chat, p.can_feed, p.can_reels
              FROM users u
              LEFT JOIN permissions p ON u.id = p.user_id
              WHERE u.id = ?`,
@@ -82,7 +83,8 @@ router.get('/:id', async (req, res) => {
                 pageSettings: user.page_settings,
                 adminPage: user.admin_page,
                 chat: user.can_chat === 1,
-                feed: user.can_feed === 1
+                feed: user.can_feed === 1,
+                reels: user.can_reels === 1
             }
         };
 
@@ -110,7 +112,8 @@ router.put('/:id/permissions', async (req, res) => {
             page_settings,
             admin_page,
             can_chat,
-            can_feed
+            can_feed,
+            can_reels
         } = req.body;
 
         // 사용자 존재 확인
@@ -136,17 +139,17 @@ router.put('/:id/permissions', async (req, res) => {
             // 권한 레코드가 없으면 생성
             await db.query(
                 `INSERT INTO permissions 
-                (user_id, view_assets, register_assets, page_settings, admin_page, can_chat, can_feed) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [id, view_assets, register_assets, page_settings, admin_page, can_chat, can_feed]
+                (user_id, view_assets, register_assets, page_settings, admin_page, can_chat, can_feed, can_reels) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [id, view_assets, register_assets, page_settings, admin_page, can_chat, can_feed, can_reels]
             );
         } else {
             // 권한 업데이트
             await db.query(
                 `UPDATE permissions 
-                SET view_assets = ?, register_assets = ?, page_settings = ?, admin_page = ?, can_chat = ?, can_feed = ?
+                SET view_assets = ?, register_assets = ?, page_settings = ?, admin_page = ?, can_chat = ?, can_feed = ?, can_reels = ?
                 WHERE user_id = ?`,
-                [view_assets, register_assets, page_settings, admin_page, can_chat, can_feed, id]
+                [view_assets, register_assets, page_settings, admin_page, can_chat, can_feed, can_reels, id]
             );
         }
 

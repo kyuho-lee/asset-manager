@@ -481,6 +481,7 @@ function applyPermissions(user) {
     var navAdmin = document.getElementById('navAdmin');
     var navChat = document.getElementById('navChat');
     var navFeed = document.getElementById('navFeed');
+    var navReels = document.getElementById('navReels');
     
     // 기본값 설정
     if (!user.permissions) {
@@ -502,6 +503,7 @@ function applyPermissions(user) {
     if (navAdmin) navAdmin.style.display = user.permissions.adminPage ? 'block' : 'none';
     if (navChat) navChat.style.display = user.permissions.chat ? 'block' : 'none';
     if (navFeed) navFeed.style.display = user.permissions.feed ? 'block' : 'none';
+    if (navReels) navReels.style.display = user.permissions.reels ? 'block' : 'none';
 }
 
 // 로그아웃
@@ -1872,6 +1874,7 @@ async function loadUsers() {
             html += '<span class="badge ' + (user.permissions.adminPage ? 'badge-active' : 'badge-inactive') + '">관리자</span>';
             html += '<span class="badge ' + (user.permissions.chat ? 'badge-active' : 'badge-inactive') + '">채팅</span>';
             html += '<span class="badge ' + (user.permissions.feed ? 'badge-active' : 'badge-inactive') + '">피드</span>';
+            html += '<span class="badge ' + (user.permissions.reels ? 'badge-active' : 'badge-inactive') + '">릴스</span>';
             html += '</div>';
             
             html += '</div>';
@@ -1904,6 +1907,7 @@ async function openPermissionModal(userId) {
         document.getElementById('permAdminPage').checked = user.permissions.adminPage;
         document.getElementById('permChat').checked = user.permissions.chat;
         document.getElementById('permFeed').checked = user.permissions.feed;
+        document.getElementById('permReels').checked = user.permissions.reels;
         
         document.getElementById('permissionModal').classList.add('active');
         document.body.classList.add('modal-open');
@@ -1928,7 +1932,8 @@ async function savePermissions() {
         page_settings: document.getElementById('permPageSettings').checked,
         admin_page: document.getElementById('permAdminPage').checked,
         can_chat: document.getElementById('permChat').checked,
-        can_feed: document.getElementById('permFeed').checked
+        can_feed: document.getElementById('permFeed').checked,
+        can_reels: document.getElementById('permReels').checked
     };
     
     try {
