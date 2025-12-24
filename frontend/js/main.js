@@ -453,7 +453,7 @@ async function showMainApp(user) {
     
     // 첫 화면 결정
     if (user.permissions && user.permissions.viewAssets) {
-        showPage('list');
+    showPage('list');
     } else if (user.permissions && user.permissions.registerAssets) {
         showPage('register');
     } else if (user.permissions && user.permissions.pageSettings) {
@@ -464,6 +464,8 @@ async function showMainApp(user) {
         showPage('chat');
     } else if (user.permissions && user.permissions.feed) {
         showPage('feed');
+    } else if (user.permissions && user.permissions.reels) {
+        showPage('reels');
     } else {
         alert('접근 권한이 없습니다. 관리자에게 문의하세요.');
     }
