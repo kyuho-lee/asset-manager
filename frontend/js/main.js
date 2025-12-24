@@ -5163,7 +5163,7 @@ async function saveProfile() {
             formData.append('file', fileInput.files[0]);
             formData.append('upload_preset', 'asset_manager');
             
-            var cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dtthankvg/image/upload', {
+            var cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dajotvruq/image/upload', {
                 method: 'POST',
                 body: formData
             });
