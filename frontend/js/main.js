@@ -4739,9 +4739,12 @@ function closeStoryViewer() {
 
 console.log('✅ 스토리 기능 로드 완료');
 
-// ========== 릴스 기능 ==========
+// ========== 릴스 기능 (다중 미디어 지원) ==========
 var reelsList = [];
 var currentReelIndex = 0;
+var currentReelMediaIndex = 0;
+var reelMediaFiles = [];
+var reelPreviewIndex = 0;
 
 // 릴스 목록 로드
 async function loadReels() {
@@ -4760,8 +4763,23 @@ async function loadReels() {
         var html = '';
         for (var i = 0; i < reelsList.length; i++) {
             var reel = reelsList[i];
+            var thumbnailUrl = reel.thumbnail_url || reel.video_url;
+            var isVideo = reel.media_type === 'video' || (!reel.media_type && reel.video_url);
+            var isMulti = reel.media_type === 'multi';
+            
             html += '<div onclick="openReelViewer(' + i + ')" style="aspect-ratio: 9/16; background: #000; border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">';
-            html += '<video src="' + reel.video_url + '" style="width: 100%; height: 100%; object-fit: cover;" muted></video>';
+            
+            if (isVideo) {
+                html += '<video src="' + reel.video_url + '" style="width: 100%; height: 100%; object-fit: cover;" muted></video>';
+            } else {
+                html += '<img src="' + thumbnailUrl + '" style="width: 100%; height: 100%; object-fit: cover;">';
+            }
+            
+            // 다중 미디어 표시
+            if (isMulti && reel.media && reel.media.length > 1) {
+                html += '<div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 10px; font-size: 11px;">📷 ' + reel.media.length + '</div>';
+            }
+            
             html += '<div style="position: absolute; bottom: 10px; left: 10px; color: white; font-size: 12px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">';
             html += '<span>▶ ' + (reel.view_count || 0) + '</span>';
             html += '</div>';
@@ -4774,38 +4792,110 @@ async function loadReels() {
     }
 }
 
-// 릴스 업로드 모달 열기
+// ========== 릴스 업로드 ==========
+
+// 릴스 미디어 미리보기
+function previewReelMedia(event) {
+    var files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    reelMediaFiles = [];
+    
+    for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        var type = file.type.startsWith('video') ? 'video' : 'image';
+        
+        reelMediaFiles.push({
+            file: file,
+            type: type,
+            url: URL.createObjectURL(file)
+        });
+    }
+    
+    // 미리보기 표시
+    document.getElementById('reelMediaLabel').style.display = 'none';
+    document.getElementById('reelPreviewContainer').style.display = 'block';
+    
+    reelPreviewIndex = 0;
+    renderReelPreview();
+}
+
+// 릴스 미리보기 렌더링
+function renderReelPreview() {
+    var slider = document.getElementById('reelPreviewSlider');
+    var indicator = document.getElementById('reelPreviewIndicator');
+    var media = reelMediaFiles[reelPreviewIndex];
+    
+    // 미디어 표시
+    if (media.type === 'video') {
+        slider.innerHTML = '<video src="' + media.url + '" style="max-width: 100%; max-height: 100%;" controls autoplay muted></video>';
+    } else {
+        slider.innerHTML = '<img src="' + media.url + '" style="max-width: 100%; max-height: 100%; object-fit: contain;">';
+    }
+    
+    // 인디케이터
+    if (reelMediaFiles.length > 1) {
+        var indicatorHtml = '';
+        for (var i = 0; i < reelMediaFiles.length; i++) {
+            var isActive = i === reelPreviewIndex;
+            indicatorHtml += '<div style="width: 8px; height: 8px; border-radius: 50%; background: ' + (isActive ? '#0066cc' : '#ccc') + '; cursor: pointer;" onclick="goToReelPreview(' + i + ')"></div>';
+        }
+        indicator.innerHTML = indicatorHtml;
+        indicator.style.display = 'flex';
+        
+        document.getElementById('reelPrevBtn').style.display = reelPreviewIndex > 0 ? 'block' : 'none';
+        document.getElementById('reelNextBtn').style.display = reelPreviewIndex < reelMediaFiles.length - 1 ? 'block' : 'none';
+    } else {
+        indicator.style.display = 'none';
+        document.getElementById('reelPrevBtn').style.display = 'none';
+        document.getElementById('reelNextBtn').style.display = 'none';
+    }
+}
+
+function prevReelPreview() {
+    if (reelPreviewIndex > 0) {
+        reelPreviewIndex--;
+        renderReelPreview();
+    }
+}
+
+function nextReelPreview() {
+    if (reelPreviewIndex < reelMediaFiles.length - 1) {
+        reelPreviewIndex++;
+        renderReelPreview();
+    }
+}
+
+function goToReelPreview(index) {
+    reelPreviewIndex = index;
+    renderReelPreview();
+}
+
+function resetReelMedia() {
+    reelMediaFiles = [];
+    reelPreviewIndex = 0;
+    document.getElementById('reelMediaInput').value = '';
+    document.getElementById('reelMediaLabel').style.display = 'flex';
+    document.getElementById('reelPreviewContainer').style.display = 'none';
+}
+
 function openReelUploadModal() {
     document.getElementById('reelUploadModal').classList.add('active');
-    document.getElementById('reelPreviewVideo').style.display = 'none';
-    document.getElementById('reelVideoLabel').style.display = 'block';
-    document.getElementById('reelVideoInput').value = '';
+    document.body.classList.add('modal-open');
+    resetReelMedia();
     document.getElementById('reelCaptionInput').value = '';
 }
 
-// 릴스 업로드 모달 닫기
 function closeReelUploadModal() {
     document.getElementById('reelUploadModal').classList.remove('active');
-}
-
-// 릴스 영상 미리보기
-function previewReelVideo(event) {
-    var file = event.target.files[0];
-    if (file) {
-        var video = document.getElementById('reelPreviewVideo');
-        video.src = URL.createObjectURL(file);
-        video.style.display = 'block';
-        document.getElementById('reelVideoLabel').style.display = 'none';
-    }
+    document.body.classList.remove('modal-open');
+    resetReelMedia();
 }
 
 // 릴스 업로드
 async function uploadReel() {
-    var fileInput = document.getElementById('reelVideoInput');
-    var captionInput = document.getElementById('reelCaptionInput');
-    
-    if (!fileInput.files[0]) {
-        alert('영상을 선택해주세요.');
+    if (reelMediaFiles.length === 0) {
+        alert('이미지 또는 영상을 선택해주세요.');
         return;
     }
     
@@ -4814,30 +4904,38 @@ async function uploadReel() {
     uploadBtn.disabled = true;
     
     try {
-        // Cloudinary에 영상 업로드
-        var formData = new FormData();
-        formData.append('file', fileInput.files[0]);
-        formData.append('upload_preset', 'asset_manager');
-        formData.append('resource_type', 'video');
+        var mediaUrls = [];
         
-        var cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dajotvruq/video/upload', {
-            method: 'POST',
-            body: formData
-        });
-        
-        var cloudinaryData = await cloudinaryResponse.json();
-        
-        if (!cloudinaryData.secure_url) {
-            throw new Error('영상 업로드 실패');
+        for (var i = 0; i < reelMediaFiles.length; i++) {
+            var media = reelMediaFiles[i];
+            var formData = new FormData();
+            formData.append('file', media.file);
+            formData.append('upload_preset', 'asset_manager');
+            
+            var uploadType = media.type === 'video' ? 'video' : 'image';
+            var cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dajotvruq/' + uploadType + '/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            var cloudinaryData = await cloudinaryResponse.json();
+            
+            if (!cloudinaryData.secure_url) {
+                throw new Error('파일 업로드 실패');
+            }
+            
+            mediaUrls.push({
+                url: cloudinaryData.secure_url,
+                type: media.type
+            });
         }
         
-        // 릴스 저장
+        var caption = document.getElementById('reelCaptionInput').value.trim();
         var response = await apiRequest('/reels', {
             method: 'POST',
             body: JSON.stringify({
-                video_url: cloudinaryData.secure_url,
-                thumbnail_url: cloudinaryData.secure_url.replace('/upload/', '/upload/so_0/'),
-                caption: captionInput.value.trim()
+                media_urls: mediaUrls,
+                caption: caption
             })
         });
         
@@ -4855,14 +4953,15 @@ async function uploadReel() {
     uploadBtn.disabled = false;
 }
 
-// 릴스 뷰어 열기
-async function openReelViewer(index) {
+// ========== 릴스 뷰어 ==========
+
+function openReelViewer(index) {
     currentReelIndex = index;
+    currentReelMediaIndex = 0;
     document.getElementById('reelViewerModal').style.display = 'block';
-    await showCurrentReel();
+    showCurrentReel();
 }
 
-// 현재 릴스 표시
 async function showCurrentReel() {
     if (currentReelIndex < 0 || currentReelIndex >= reelsList.length) {
         closeReelViewer();
@@ -4870,12 +4969,13 @@ async function showCurrentReel() {
     }
     
     var reel = reelsList[currentReelIndex];
+    currentReelMediaIndex = 0;
     
     // 조회수 증가
     await apiRequest('/reels/' + reel.id + '/view', { method: 'POST' });
     
-    // 영상
-    document.getElementById('reelViewerVideo').src = reel.video_url;
+    // 미디어 표시
+    renderReelViewerMedia(reel);
     
     // 프로필 아바타
     var avatarEl = document.getElementById('reelUserAvatar');
@@ -4899,13 +4999,68 @@ async function showCurrentReel() {
     // 댓글
     document.getElementById('reelCommentCount').textContent = reel.comment_count || 0;
     
-    // 팔로우 버튼 (본인이면 숨김)
+    // 팔로우 버튼
     var followBtn = document.getElementById('reelFollowBtn');
     if (currentUser && reel.user_id === currentUser.id) {
         followBtn.style.display = 'none';
     } else {
         followBtn.style.display = 'inline-block';
         checkReelFollowStatus(reel.user_id);
+    }
+}
+
+// 릴스 미디어 렌더링
+function renderReelViewerMedia(reel) {
+    var wrapper = document.querySelector('.reel-video-wrapper');
+    var media = reel.media || [{ media_type: reel.media_type || 'video', media_url: reel.video_url }];
+    var current = media[currentReelMediaIndex];
+    
+    var mediaHtml = '';
+    
+    // 미디어 표시
+    if (current.media_type === 'video') {
+        mediaHtml += '<video src="' + current.media_url + '" autoplay loop playsinline onclick="this.paused ? this.play() : this.pause()" style="max-width: 100%; max-height: 100%; object-fit: contain;"></video>';
+    } else {
+        mediaHtml += '<img src="' + current.media_url + '" style="max-width: 100%; max-height: 100%; object-fit: contain;">';
+    }
+    
+    // 다중 미디어 인디케이터
+    if (media.length > 1) {
+        mediaHtml += '<div style="position: absolute; top: 50px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px;">';
+        for (var i = 0; i < media.length; i++) {
+            var isActive = i === currentReelMediaIndex;
+            mediaHtml += '<div style="width: 8px; height: 8px; border-radius: 50%; background: ' + (isActive ? 'white' : 'rgba(255,255,255,0.4)') + ';"></div>';
+        }
+        mediaHtml += '</div>';
+        
+        mediaHtml += '<div style="position: absolute; top: 15px; right: 50px; background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px;">' + (currentReelMediaIndex + 1) + '/' + media.length + '</div>';
+    }
+    
+    wrapper.innerHTML = mediaHtml;
+}
+
+// 이전/다음 미디어 (다중일 때)
+function prevReelMedia() {
+    var reel = reelsList[currentReelIndex];
+    var media = reel.media || [];
+    
+    if (media.length > 1 && currentReelMediaIndex > 0) {
+        currentReelMediaIndex--;
+        renderReelViewerMedia(reel);
+    } else {
+        prevReel();
+    }
+}
+
+function nextReelMedia() {
+    var reel = reelsList[currentReelIndex];
+    var media = reel.media || [];
+    
+    if (media.length > 1 && currentReelMediaIndex < media.length - 1) {
+        currentReelMediaIndex++;
+        renderReelViewerMedia(reel);
+    } else {
+        nextReel();
     }
 }
 
@@ -4978,36 +5133,35 @@ async function toggleReelLike() {
     }
 }
 
-// 다음 릴스
 function nextReel() {
     if (currentReelIndex < reelsList.length - 1) {
         currentReelIndex++;
+        currentReelMediaIndex = 0;
         showCurrentReel();
     }
 }
 
-// 이전 릴스
 function prevReel() {
     if (currentReelIndex > 0) {
         currentReelIndex--;
+        currentReelMediaIndex = 0;
         showCurrentReel();
     }
 }
 
-// 릴스 뷰어 닫기
 function closeReelViewer() {
     document.getElementById('reelViewerModal').style.display = 'none';
-    document.getElementById('reelViewerVideo').pause();
+    var video = document.querySelector('.reel-video-wrapper video');
+    if (video) video.pause();
     loadReels();
 }
 
-// 릴스 댓글 열기 (간단 버전)
 function openReelComments() {
     var reel = reelsList[currentReelIndex];
     alert('댓글 기능은 추후 업데이트 예정입니다!\n현재 댓글 수: ' + (reel.comment_count || 0));
 }
 
-console.log('✅ 릴스 기능 로드 완료');
+console.log('✅ 릴스 기능 (다중 미디어) 로드 완료');
 
 // ========== 사용자 검색 기능 ==========
 var searchTimeout = null;
@@ -5302,3 +5456,4 @@ async function loadFeedUserAvatar() {
         }
     }
 }
+
