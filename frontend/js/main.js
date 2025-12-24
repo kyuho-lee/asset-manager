@@ -4987,6 +4987,10 @@ async function toggleSearchFollow(userId) {
             btn.style.background = '#f0f0f0';
             btn.style.color = '#666';
         }
+        
+        // 마이페이지 팔로우 수 업데이트
+        loadFollowCounts();
+        
     } catch (error) {
         console.error('팔로우 토글 오류:', error);
     }
