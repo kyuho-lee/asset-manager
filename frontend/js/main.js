@@ -3427,7 +3427,8 @@ async function loadFeed() {
     
     // 사용자 아바타 설정
     if (currentUser && currentUser.name) {
-        document.getElementById('feedUserAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+        // 프로필 이미지 로드
+        loadFeedUserAvatar();
     }
     
     // 인기 해시태그 로드
@@ -4544,7 +4545,11 @@ async function loadStories() {
             html += '<div class="story-item" onclick="openStoryViewer(' + user.user_id + ')" style="cursor: pointer; text-align: center; min-width: 70px;">';
             html += '<div style="width: 65px; height: 65px; border-radius: 50%; padding: 3px; background: ' + borderColor + '; margin: 0 auto 5px;">';
             html += '<div style="width: 100%; height: 100%; border-radius: 50%; background: white; padding: 2px;">';
-            html += '<div style="width: 100%; height: 100%; border-radius: 50%; background: #667eea; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">' + initial + '</div>';
+            if (user.user_profile_image) {
+                html += '<img src="' + user.user_profile_image + '" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">';
+            } else {
+                html += '<div style="width: 100%; height: 100%; border-radius: 50%; background: #667eea; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">' + initial + '</div>';
+            }
             html += '</div></div>';
             html += '<span style="font-size: 11px; color: #666; display: block; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + user.user_name + '</span>';
             html += '</div>';
@@ -5199,3 +5204,24 @@ async function saveProfile() {
 }
 
 // switchMyPageTab 함수 수정 필요 - 기존 함수 찾아서 profile 케이스 추가
+
+
+// 피드 작성자 아바타 로드
+async function loadFeedUserAvatar() {
+    try {
+        var response = await apiRequest('/profiles/me', { method: 'GET' });
+        var profile = response.data;
+        var avatarEl = document.getElementById('feedUserAvatar');
+        
+        if (profile.profile_image) {
+            avatarEl.innerHTML = '<img src="' + profile.profile_image + '" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">';
+        } else if (currentUser && currentUser.name) {
+            avatarEl.textContent = currentUser.name.charAt(0).toUpperCase();
+        }
+    } catch (error) {
+        console.error('피드 아바타 로드 오류:', error);
+        if (currentUser && currentUser.name) {
+            document.getElementById('feedUserAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+        }
+    }
+}

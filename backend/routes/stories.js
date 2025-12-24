@@ -15,10 +15,12 @@ router.get('/', async (req, res) => {
             SELECT 
                 s.*,
                 u.name as user_name,
+                pr.profile_image as user_profile_image,
                 (SELECT COUNT(*) FROM story_views WHERE story_id = s.id) as view_count,
                 (SELECT COUNT(*) FROM story_views WHERE story_id = s.id AND user_id = ?) as is_viewed
             FROM stories s
             JOIN users u ON s.user_id = u.id
+            LEFT JOIN profiles pr ON s.user_id = pr.user_id
             WHERE s.expires_at > NOW()
             ORDER BY s.created_at DESC
         `, [userId]);
@@ -30,6 +32,7 @@ router.get('/', async (req, res) => {
                 userStories[story.user_id] = {
                     user_id: story.user_id,
                     user_name: story.user_name,
+                    user_profile_image: story.user_profile_image,
                     stories: [],
                     has_unviewed: false
                 };
