@@ -454,15 +454,20 @@ button[onclick*="downloadExcel"]:hover {
             <!-- 채팅 영역 -->
             <div class="chat-main" id="chatAreaContainer">
                 <!-- 채팅 헤더 -->
-                <div class="chat-header" id="chatHeader" style="display: none;">
-                    <button id="backToChatList" class="btn btn-ghost btn-sm" onclick="showChatRoomList()" style="display: none;">
-                        ← 뒤로
+                <div class="chat-header-bar" id="chatHeader" style="display: none;">
+                <div class="chat-header-left">
+                    <button id="backToChatList" class="chat-back-btn" onclick="showChatRoomList()">
+                        <span>‹</span>
+                        <span class="chat-back-count">999+</span>
                     </button>
-                    <div class="avatar avatar-md" id="chatPartnerAvatar">U</div>
-                    <div class="chat-header-info">
-                        <h3 id="chatPartnerName">채팅 상대</h3>
-                    </div>
                 </div>
+                <div class="chat-header-center">
+                    <span id="chatPartnerName">채팅 상대</span>
+                </div>
+                <div class="chat-header-right">
+                    <button class="chat-header-icon">🔍</button>
+                    <button class="chat-header-icon">☰</button>
+                </di
                 
                 <!-- 메시지 영역 -->
                 <div class="chat-messages" id="chatMessages">
