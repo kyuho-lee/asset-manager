@@ -4668,7 +4668,8 @@ async function showCurrentStory() {
     // 조회 기록 추가
     await apiRequest('/stories/' + story.id, { method: 'GET' });
     
-    // UI 업데이트var avatarEl = document.getElementById('storyViewerAvatar');
+    // UI 업데이트
+    var avatarEl = document.getElementById('storyViewerAvatar');
     if (currentStoryUser.user_profile_image) {
         avatarEl.innerHTML = '<img src="' + currentStoryUser.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">';
     } else {
