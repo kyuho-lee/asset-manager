@@ -4503,7 +4503,7 @@ async function removeFollower(userId) {
 }
 
 
-javascript// ========== 스토리 기능 ==========
+// ========== 스토리 기능 ==========
 var currentStoryUser = null;
 var currentStoryIndex = 0;
 var storyTimer = null;
@@ -4915,7 +4915,7 @@ function openReelComments() {
 
 console.log('✅ 릴스 기능 로드 완료');
 
-javascript// ========== 사용자 검색 기능 ==========
+// ========== 사용자 검색 기능 ==========
 var searchTimeout = null;
 
 // 사용자 검색
@@ -5013,7 +5013,7 @@ function clearUserSearch() {
 console.log('✅ 사용자 검색 기능 로드 완료');
 
 
-javascript// ========== 해시태그 기능 ==========
+// ========== 해시태그 기능 ==========
 
 // 인기 해시태그 로드
 async function loadPopularHashtags() {
