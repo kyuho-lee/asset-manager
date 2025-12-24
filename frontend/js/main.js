@@ -4907,10 +4907,6 @@ function openReelComments() {
 
 console.log('✅ 릴스 기능 로드 완료');
 
-좋습니다! 🎉
-
-🔧 Step 3: main.js에 검색 기능 추가
-main.js 맨 아래에 추가하세요:
 javascript// ========== 사용자 검색 기능 ==========
 var searchTimeout = null;
 
