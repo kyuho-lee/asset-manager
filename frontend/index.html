@@ -635,34 +635,34 @@ button[onclick*="downloadExcel"]:hover {
     </div>
 
     <!-- 릴스 뷰어 모달 (인스타그램 스타일) -->
-    <div id="reelViewerModal" class="reel-viewer" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 10000;">
-        
-        <!-- 뒤로가기 버튼 (좌측 상단) -->
-        <button onclick="closeReelViewer()" style="position: absolute; top: 15px; left: 15px; z-index: 10; background: none; border: none; color: white; font-size: 28px; cursor: pointer;">‹</button>
-        
-        <!-- 영상 영역 -->
-        <div class="reel-video-wrapper">
-            <video id="reelViewerVideo" autoplay loop playsinline onclick="this.paused ? this.play() : this.pause()"></video>
-        </div>
-        
-        <!-- 하단 정보 영역 -->
-        <div class="reel-bottom-area">
+<div id="reelViewerModal" class="reel-viewer" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 10000;">
+    
+    <!-- 뒤로가기 버튼 (좌측 상단) -->
+    <button onclick="closeReelViewer()" style="position: absolute; top: 15px; left: 15px; z-index: 20; background: none; border: none; color: white; font-size: 28px; cursor: pointer;">‹</button>
+    
+    <!-- 영상 영역 -->
+    <div class="reel-video-wrapper">
+        <video id="reelViewerVideo" autoplay loop playsinline onclick="this.paused ? this.play() : this.pause()"></video>
+    </div>
+    
+    <!-- 하단 정보 영역 -->
+        <div class="reel-bottom-area" style="z-index: 10;">
             <!-- 우측 액션 버튼 (세로 배치) -->
             <div class="reel-actions">
                 <div style="text-align: center;">
-                    <button onclick="toggleReelLike()" style="background: none; border: none; cursor: pointer; padding: 0;">
+                    <button onclick="toggleReelLike()" style="background: none; border: none; cursor: pointer; padding: 10px;">
                         <span id="reelLikeBtn" style="font-size: 28px;">🤍</span>
                     </button>
                     <p id="reelLikeCount" style="color: white; font-size: 12px; margin: 5px 0 0 0;">0</p>
                 </div>
                 <div style="text-align: center;">
-                    <button onclick="openReelComments()" style="background: none; border: none; cursor: pointer; padding: 0;">
+                    <button onclick="openReelComments()" style="background: none; border: none; cursor: pointer; padding: 10px;">
                         <span style="font-size: 26px;">💬</span>
                     </button>
                     <p id="reelCommentCount" style="color: white; font-size: 12px; margin: 5px 0 0 0;">0</p>
                 </div>
                 <div style="text-align: center;">
-                    <button style="background: none; border: none; cursor: pointer; padding: 0;">
+                    <button style="background: none; border: none; cursor: pointer; padding: 10px;">
                         <span style="font-size: 26px;">📤</span>
                     </button>
                 </div>
@@ -680,24 +680,8 @@ button[onclick*="downloadExcel"]:hover {
         </div>
         
         <!-- 이전/다음 터치 영역 -->
-        <div onclick="prevReel()" style="position: absolute; top: 0; left: 0; width: 30%; height: 100%; cursor: pointer; z-index: 5;"></div>
-        <div onclick="nextReel()" style="position: absolute; top: 0; right: 0; width: 30%; height: 100%; cursor: pointer; z-index: 5;"></div>
-    </div>
-            
-            <!-- 하단 정보 -->
-            <div class="reel-mobile-info">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                    <div id="reelUserAvatarMobile" style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; border: 2px solid white; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 14px;"></div>
-                    <span id="reelUserNameMobile" style="color: white; font-weight: 600; font-size: 14px;"></span>
-                    <button id="reelFollowBtnMobile" onclick="toggleReelFollow()" style="padding: 6px 16px; background: transparent; border: 1px solid white; color: white; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">팔로우</button>
-                </div>
-                <p id="reelCaptionMobile" style="color: white; font-size: 14px; margin: 0; line-height: 1.4; max-height: 60px; overflow: hidden; text-shadow: 0 1px 3px rgba(0,0,0,0.8);"></p>
-            </div>
-        </div>
-        
-        <!-- 이전/다음 터치 영역 -->
-        <div onclick="prevReel()" style="position: absolute; top: 0; left: 0; width: 30%; height: 100%; cursor: pointer; z-index: 5;"></div>
-        <div onclick="nextReel()" style="position: absolute; top: 0; right: 0; width: 30%; height: 100%; cursor: pointer; z-index: 5;"></div>
+        <div onclick="prevReel()" style="position: absolute; top: 0; left: 0; width: 30%; height: 70%; cursor: pointer; z-index: 1;"></div>
+        <div onclick="nextReel()" style="position: absolute; top: 0; right: 0; width: 30%; height: 70%; cursor: pointer; z-index: 1;"></div>
     </div>
 
 
