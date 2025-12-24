@@ -37,7 +37,7 @@ const feedRoutes = require('./routes/feed');
 const notificationsRoutes = require('./routes/notifications');
 const followsRoutes = require('./routes/follows');
 const storiesRoutes = require('./routes/stories');
-
+const reelsRoutes = require('./routes/reels');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/assets', assetsRoutes);
@@ -48,6 +48,7 @@ app.use('/api/feed', feedRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/follows', followsRoutes);
 app.use('/api/stories', storiesRoutes);
+app.use('/api/reels', reelsRoutes);
 
 // ========== 기본 라우트 ==========
 

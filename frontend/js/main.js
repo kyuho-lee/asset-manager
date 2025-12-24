@@ -592,18 +592,26 @@ async function showPage(page) {
             await loadStories();
             await loadFeed();
         }
+        
+    } else if (page === 'reels') {
+        var reelsPage = document.getElementById('reelsPage');
+        if (reelsPage) {
+            reelsPage.classList.add('active');
+            navItems[5].classList.add('active');
+            await loadReels();
+        }
     } else if (page === 'settings') {
         var settingsPage = document.getElementById('settingsPage');
         if (settingsPage) {
             settingsPage.classList.add('active');
-            navItems[5].classList.add('active');
+            navItems[6].classList.add('active');
             await renderFieldSettings();
         }      
     }  else if (page === 'admin') {
         var adminPage = document.getElementById('adminPage');
         if (adminPage) {
             adminPage.classList.add('active');
-            navItems[6].classList.add('active');
+            navItems[7].classList.add('active');
             await loadUsers();
         }
     }
@@ -3415,6 +3423,11 @@ async function loadFeed() {
     await loadPosts(true);
 }
 
+// 릴스 메뉴 클릭 이벤트
+document.getElementById('navReels').addEventListener('click', function() {
+    showPage('reels');
+});
+
 // 게시물 로드
 async function loadPosts(reset) {
     if (feedLoading) return;
@@ -4694,3 +4707,202 @@ function closeStoryViewer() {
 }
 
 console.log('✅ 스토리 기능 로드 완료');
+
+// ========== 릴스 기능 ==========
+var reelsList = [];
+var currentReelIndex = 0;
+
+// 릴스 목록 로드
+async function loadReels() {
+    try {
+        var response = await apiRequest('/reels', { method: 'GET' });
+        reelsList = response.data || [];
+        
+        var container = document.getElementById('reelsGrid');
+        if (!container) return;
+        
+        if (reelsList.length === 0) {
+            container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #999; padding: 40px;">아직 릴스가 없습니다.</p>';
+            return;
+        }
+        
+        var html = '';
+        for (var i = 0; i < reelsList.length; i++) {
+            var reel = reelsList[i];
+            html += '<div onclick="openReelViewer(' + i + ')" style="aspect-ratio: 9/16; background: #000; border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">';
+            html += '<video src="' + reel.video_url + '" style="width: 100%; height: 100%; object-fit: cover;" muted></video>';
+            html += '<div style="position: absolute; bottom: 10px; left: 10px; color: white; font-size: 12px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">';
+            html += '<span>▶ ' + (reel.view_count || 0) + '</span>';
+            html += '</div>';
+            html += '</div>';
+        }
+        
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('릴스 로드 오류:', error);
+    }
+}
+
+// 릴스 업로드 모달 열기
+function openReelUploadModal() {
+    document.getElementById('reelUploadModal').classList.add('active');
+    document.getElementById('reelPreviewVideo').style.display = 'none';
+    document.getElementById('reelVideoLabel').style.display = 'block';
+    document.getElementById('reelVideoInput').value = '';
+    document.getElementById('reelCaptionInput').value = '';
+}
+
+// 릴스 업로드 모달 닫기
+function closeReelUploadModal() {
+    document.getElementById('reelUploadModal').classList.remove('active');
+}
+
+// 릴스 영상 미리보기
+function previewReelVideo(event) {
+    var file = event.target.files[0];
+    if (file) {
+        var video = document.getElementById('reelPreviewVideo');
+        video.src = URL.createObjectURL(file);
+        video.style.display = 'block';
+        document.getElementById('reelVideoLabel').style.display = 'none';
+    }
+}
+
+// 릴스 업로드
+async function uploadReel() {
+    var fileInput = document.getElementById('reelVideoInput');
+    var captionInput = document.getElementById('reelCaptionInput');
+    
+    if (!fileInput.files[0]) {
+        alert('영상을 선택해주세요.');
+        return;
+    }
+    
+    var uploadBtn = document.getElementById('uploadReelBtn');
+    uploadBtn.textContent = '업로드 중...';
+    uploadBtn.disabled = true;
+    
+    try {
+        // Cloudinary에 영상 업로드
+        var formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('upload_preset', 'asset_manager');
+        formData.append('resource_type', 'video');
+        
+        var cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dajotvruq/video/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        var cloudinaryData = await cloudinaryResponse.json();
+        
+        if (!cloudinaryData.secure_url) {
+            throw new Error('영상 업로드 실패');
+        }
+        
+        // 릴스 저장
+        var response = await apiRequest('/reels', {
+            method: 'POST',
+            body: JSON.stringify({
+                video_url: cloudinaryData.secure_url,
+                thumbnail_url: cloudinaryData.secure_url.replace('/upload/', '/upload/so_0/'),
+                caption: captionInput.value.trim()
+            })
+        });
+        
+        if (response.success) {
+            alert('릴스가 등록되었습니다!');
+            closeReelUploadModal();
+            loadReels();
+        }
+    } catch (error) {
+        console.error('릴스 업로드 오류:', error);
+        alert('릴스 업로드에 실패했습니다.');
+    }
+    
+    uploadBtn.textContent = '올리기';
+    uploadBtn.disabled = false;
+}
+
+// 릴스 뷰어 열기
+async function openReelViewer(index) {
+    currentReelIndex = index;
+    document.getElementById('reelViewerModal').style.display = 'block';
+    await showCurrentReel();
+}
+
+// 현재 릴스 표시
+async function showCurrentReel() {
+    if (currentReelIndex < 0 || currentReelIndex >= reelsList.length) {
+        closeReelViewer();
+        return;
+    }
+    
+    var reel = reelsList[currentReelIndex];
+    
+    // 조회수 증가
+    await apiRequest('/reels/' + reel.id + '/view', { method: 'POST' });
+    
+    // UI 업데이트
+    document.getElementById('reelViewerVideo').src = reel.video_url;
+    document.getElementById('reelUserName').textContent = '@' + reel.user_name;
+    document.getElementById('reelCaption').textContent = reel.caption || '';
+    document.getElementById('reelLikeCount').textContent = reel.like_count || 0;
+    document.getElementById('reelCommentCount').textContent = reel.comment_count || 0;
+    document.getElementById('reelLikeBtn').textContent = reel.is_liked ? '❤️' : '🤍';
+}
+
+// 릴스 좋아요 토글
+async function toggleReelLike() {
+    var reel = reelsList[currentReelIndex];
+    
+    try {
+        var response = await apiRequest('/reels/' + reel.id + '/like', { method: 'POST' });
+        
+        if (response.success) {
+            if (response.liked) {
+                reel.is_liked = 1;
+                reel.like_count = (reel.like_count || 0) + 1;
+                document.getElementById('reelLikeBtn').textContent = '❤️';
+            } else {
+                reel.is_liked = 0;
+                reel.like_count = Math.max(0, (reel.like_count || 0) - 1);
+                document.getElementById('reelLikeBtn').textContent = '🤍';
+            }
+            document.getElementById('reelLikeCount').textContent = reel.like_count;
+        }
+    } catch (error) {
+        console.error('릴스 좋아요 오류:', error);
+    }
+}
+
+// 다음 릴스
+function nextReel() {
+    if (currentReelIndex < reelsList.length - 1) {
+        currentReelIndex++;
+        showCurrentReel();
+    }
+}
+
+// 이전 릴스
+function prevReel() {
+    if (currentReelIndex > 0) {
+        currentReelIndex--;
+        showCurrentReel();
+    }
+}
+
+// 릴스 뷰어 닫기
+function closeReelViewer() {
+    document.getElementById('reelViewerModal').style.display = 'none';
+    document.getElementById('reelViewerVideo').pause();
+    loadReels();
+}
+
+// 릴스 댓글 열기 (간단 버전)
+function openReelComments() {
+    var reel = reelsList[currentReelIndex];
+    alert('댓글 기능은 추후 업데이트 예정입니다!\n현재 댓글 수: ' + (reel.comment_count || 0));
+}
+
+console.log('✅ 릴스 기능 로드 완료');
