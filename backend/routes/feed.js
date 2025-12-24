@@ -31,6 +31,86 @@ const upload = multer({
 // 모든 피드 API는 로그인 필요
 router.use(authenticateToken);
 
+
+// 해시태그 추출 함수
+function extractHashtags(content) {
+    if (!content) return [];
+    var regex = /#([가-힣a-zA-Z0-9_]+)/g;
+    var matches = content.match(regex);
+    if (!matches) return [];
+    return matches.map(function(tag) { return tag.substring(1).toLowerCase(); });
+}
+
+// 해시태그 저장 함수
+async function saveHashtags(postId, hashtags) {
+    for (var i = 0; i < hashtags.length; i++) {
+        var tag = hashtags[i];
+        
+        // 해시태그 존재 확인 또는 생성
+        var [existing] = await db.query('SELECT id FROM hashtags WHERE name = ?', [tag]);
+        
+        var hashtagId;
+        if (existing.length > 0) {
+            hashtagId = existing[0].id;
+            await db.query('UPDATE hashtags SET post_count = post_count + 1 WHERE id = ?', [hashtagId]);
+        } else {
+            var [result] = await db.query('INSERT INTO hashtags (name, post_count) VALUES (?, 1)', [tag]);
+            hashtagId = result.insertId;
+        }
+        
+        // 게시물-해시태그 연결
+        await db.query('INSERT IGNORE INTO post_hashtags (post_id, hashtag_id) VALUES (?, ?)', [postId, hashtagId]);
+    }
+}
+
+// 인기 해시태그 조회
+router.get('/hashtags/popular', async (req, res) => {
+    try {
+        var [hashtags] = await db.query(`
+            SELECT name, post_count 
+            FROM hashtags 
+            WHERE post_count > 0
+            ORDER BY post_count DESC 
+            LIMIT 10
+        `);
+        
+        res.json({ success: true, data: hashtags });
+    } catch (error) {
+        console.error('인기 해시태그 조회 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    }
+});
+
+// 해시태그로 게시물 검색
+router.get('/hashtags/:tag', async (req, res) => {
+    try {
+        var userId = req.user.id;
+        var tag = req.params.tag.toLowerCase();
+        
+        var [posts] = await db.query(`
+            SELECT 
+                p.*,
+                u.name as user_name,
+                (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as like_count,
+                (SELECT COUNT(*) FROM post_comments WHERE post_id = p.id) as comment_count,
+                (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id AND user_id = ?) as is_liked
+            FROM posts p
+            JOIN users u ON p.user_id = u.id
+            JOIN post_hashtags ph ON p.id = ph.post_id
+            JOIN hashtags h ON ph.hashtag_id = h.id
+            WHERE h.name = ?
+            ORDER BY p.created_at DESC
+            LIMIT 50
+        `, [userId, tag]);
+        
+        res.json({ success: true, data: posts });
+    } catch (error) {
+        console.error('해시태그 검색 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    }
+});
+
+
 // ========== 피드 목록 조회 ==========
 router.get('/', async (req, res) => {
     try {
@@ -297,82 +377,5 @@ router.delete('/comments/:commentId', async (req, res) => {
     }
 });
 
-// 해시태그 추출 함수
-function extractHashtags(content) {
-    if (!content) return [];
-    var regex = /#([가-힣a-zA-Z0-9_]+)/g;
-    var matches = content.match(regex);
-    if (!matches) return [];
-    return matches.map(function(tag) { return tag.substring(1).toLowerCase(); });
-}
-
-// 해시태그 저장 함수
-async function saveHashtags(postId, hashtags) {
-    for (var i = 0; i < hashtags.length; i++) {
-        var tag = hashtags[i];
-        
-        // 해시태그 존재 확인 또는 생성
-        var [existing] = await db.query('SELECT id FROM hashtags WHERE name = ?', [tag]);
-        
-        var hashtagId;
-        if (existing.length > 0) {
-            hashtagId = existing[0].id;
-            await db.query('UPDATE hashtags SET post_count = post_count + 1 WHERE id = ?', [hashtagId]);
-        } else {
-            var [result] = await db.query('INSERT INTO hashtags (name, post_count) VALUES (?, 1)', [tag]);
-            hashtagId = result.insertId;
-        }
-        
-        // 게시물-해시태그 연결
-        await db.query('INSERT IGNORE INTO post_hashtags (post_id, hashtag_id) VALUES (?, ?)', [postId, hashtagId]);
-    }
-}
-
-// 인기 해시태그 조회
-router.get('/hashtags/popular', async (req, res) => {
-    try {
-        var [hashtags] = await db.query(`
-            SELECT name, post_count 
-            FROM hashtags 
-            WHERE post_count > 0
-            ORDER BY post_count DESC 
-            LIMIT 10
-        `);
-        
-        res.json({ success: true, data: hashtags });
-    } catch (error) {
-        console.error('인기 해시태그 조회 오류:', error);
-        res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
-    }
-});
-
-// 해시태그로 게시물 검색
-router.get('/hashtags/:tag', async (req, res) => {
-    try {
-        var userId = req.user.id;
-        var tag = req.params.tag.toLowerCase();
-        
-        var [posts] = await db.query(`
-            SELECT 
-                p.*,
-                u.name as user_name,
-                (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as like_count,
-                (SELECT COUNT(*) FROM post_comments WHERE post_id = p.id) as comment_count,
-                (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id AND user_id = ?) as is_liked
-            FROM posts p
-            JOIN users u ON p.user_id = u.id
-            JOIN post_hashtags ph ON p.id = ph.post_id
-            JOIN hashtags h ON ph.hashtag_id = h.id
-            WHERE h.name = ?
-            ORDER BY p.created_at DESC
-            LIMIT 50
-        `, [userId, tag]);
-        
-        res.json({ success: true, data: posts });
-    } catch (error) {
-        console.error('해시태그 검색 오류:', error);
-        res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
-    }
-});
 
 module.exports = router;
