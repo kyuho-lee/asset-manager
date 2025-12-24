@@ -4668,8 +4668,13 @@ async function showCurrentStory() {
     // 조회 기록 추가
     await apiRequest('/stories/' + story.id, { method: 'GET' });
     
-    // UI 업데이트
-    document.getElementById('storyViewerAvatar').textContent = currentStoryUser.user_name.charAt(0).toUpperCase();
+    // UI 업데이트var avatarEl = document.getElementById('storyViewerAvatar');
+    if (currentStoryUser.user_profile_image) {
+        avatarEl.innerHTML = '<img src="' + currentStoryUser.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">';
+    } else {
+        avatarEl.innerHTML = '';
+        avatarEl.textContent = currentStoryUser.user_name.charAt(0).toUpperCase();
+    }
     document.getElementById('storyViewerName').textContent = currentStoryUser.user_name;
     document.getElementById('storyViewerImage').src = story.image_url;
     document.getElementById('storyViewerText').textContent = story.text_content || '';
