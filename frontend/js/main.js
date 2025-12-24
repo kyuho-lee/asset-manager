@@ -3040,7 +3040,10 @@ async function loadMessages(roomId) {
                 html += '</div>';
             } else {
                 // 상대방 메시지 (왼쪽)
-                html += '<div style="display: flex; justify-content: flex-start; margin-bottom: 15px;">';
+                html += '<div style="display: flex; justify-content: flex-start; margin-bottom: 15px; gap: 10px;">';
+                html += '<div style="width: 35px; height: 35px; border-radius: 50%; overflow: hidden; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 14px; flex-shrink: 0;">';
+                html += msg.sender_profile_image ? '<img src="' + msg.sender_profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">' : msg.sender_name.charAt(0).toUpperCase();
+                html += '</div>';
                 html += '<div>';
                 html += '<div style="font-size: 12px; color: #666; margin-bottom: 5px;">' + msg.sender_name + '</div>';
                 html += '<div style="display: flex; align-items: flex-end; gap: 8px;">';
@@ -3502,7 +3505,12 @@ function renderPostCard(post) {
     // 헤더
     html += '<div style="padding: 15px; display: flex; justify-content: space-between; align-items: center;">';
     html += '<div style="display: flex; align-items: center; gap: 12px;">';
-    html += '<div style="width: 45px; height: 45px; background: #0066cc; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">' + userInitial + '</div>';
+    
+    html += '<div style="width: 45px; height: 45px; border-radius: 50%; overflow: hidden; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 18px;">';
+    html += post.user_profile_image ? '<img src="' + post.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">' : userInitial;
+    html += '</div>';
+
+
     html += '<div>';
     html += '<div style="font-weight: 600;">' + post.user_name + '</div>';
     html += '<div style="font-size: 12px; color: #999;">' + timeAgo + '</div>';
@@ -3708,10 +3716,15 @@ async function loadComments(postId) {
             
             html += '<div style="padding: 12px 0; border-bottom: 1px solid #eee;">';
             html += '<div style="display: flex; justify-content: space-between; align-items: start;">';
+            html += '<div style="display: flex; gap: 10px; flex: 1;">';
+            html += '<div style="width: 35px; height: 35px; border-radius: 50%; overflow: hidden; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 14px; flex-shrink: 0;">';
+            html += comment.user_profile_image ? '<img src="' + comment.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">' : comment.user_name.charAt(0).toUpperCase();
+            html += '</div>';
             html += '<div style="flex: 1;">';
             html += '<span style="font-weight: 600;">' + comment.user_name + '</span>';
             html += '<span style="color: #999; font-size: 12px; margin-left: 10px;">' + timeAgo + '</span>';
             html += '<p style="margin: 5px 0 0 0; line-height: 1.5;">' + comment.content + '</p>';
+            html += '</div>';
             html += '</div>';
             
             if (isMyComment) {
@@ -4370,7 +4383,9 @@ function renderFollowList(list, type) {
         
         html += '<div class="follow-item">';
         html += '<div class="follow-user-info">';
-        html += '<div class="follow-avatar">' + initial + '</div>';
+        html += '<div class="follow-avatar" style="overflow: hidden;">';
+        html += user.profile_image ? '<img src="' + user.profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">' : initial;
+        html += '</div>'; 
         html += '<div>';
         html += '<div class="follow-user-name">' + user.name + '</div>';
         html += '<div class="follow-user-email">' + user.email + '</div>';
@@ -4947,7 +4962,9 @@ async function searchUsers(query) {
                 
                 html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee;">';
                 html += '<div style="display: flex; align-items: center; gap: 12px;">';
-                html += '<div style="width: 45px; height: 45px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">' + initial + '</div>';
+                html += '<div style="width: 45px; height: 45px; border-radius: 50%; overflow: hidden; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 18px;">';
+                html += user.profile_image ? '<img src="' + user.profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">' : initial;
+                html += '</div>';
                 html += '<div>';
                 html += '<div style="font-weight: 600;">' + user.name + '</div>';
                 html += '<div style="font-size: 12px; color: #999;">' + user.email + '</div>';
