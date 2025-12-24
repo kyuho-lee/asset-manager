@@ -520,83 +520,7 @@ button[onclick*="downloadExcel"]:hover {
             </div>
         </div>
         
-<!-- 릴스 페이지 -->
-<div id="reelsPage" class="main-content">
-    <h1 class="page-title">🎬 릴스</h1>
     
-    <!-- 릴스 업로드 버튼 -->
-    <div style="margin-bottom: 20px;">
-        <button onclick="openReelUploadModal()" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 25px; cursor: pointer; font-size: 14px; font-weight: 600;">
-            + 릴스 올리기
-        </button>
-    </div>
-    
-    <!-- 릴스 그리드 -->
-        <div id="reelsGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">
-            <p style="grid-column: 1/-1; text-align: center; color: #999; padding: 40px;">아직 릴스가 없습니다.</p>
-        </div>
-    </div>
-
-    <!-- 릴스 업로드 모달 -->
-    <div id="reelUploadModal" class="modal">
-        <div class="modal-content" style="max-width: 400px;">
-            <div class="modal-header">
-                <h2>🎬 릴스 올리기</h2>
-                <span class="close-btn" onclick="closeReelUploadModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div style="text-align: center; margin-bottom: 15px;">
-                    <video id="reelPreviewVideo" src="" style="max-width: 100%; max-height: 300px; border-radius: 10px; display: none;" controls></video>
-                    <label id="reelVideoLabel" style="display: block; padding: 50px; border: 2px dashed #ddd; border-radius: 10px; cursor: pointer;">
-                        <input type="file" id="reelVideoInput" accept="video/*" onchange="previewReelVideo(event)" style="display: none;">
-                        <div style="color: #999;">
-                            <span style="font-size: 40px;">🎬</span>
-                            <p>영상을 선택하세요</p>
-                            <small>(최대 60초)</small>
-                        </div>
-                    </label>
-                </div>
-                <textarea id="reelCaptionInput" placeholder="캡션 추가..." style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; resize: none; height: 60px; box-sizing: border-box;"></textarea>
-            </div>
-            <div class="modal-footer" style="text-align: right; padding-top: 15px;">
-                <button onclick="closeReelUploadModal()" style="padding: 10px 20px; background: #eee; border: none; border-radius: 8px; cursor: pointer; margin-right: 10px;">취소</button>
-                <button onclick="uploadReel()" id="uploadReelBtn" style="padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer;">올리기</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 릴스 뷰어 모달 -->
-    <div id="reelViewerModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: black; z-index: 2000;">
-        <div style="position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
-            <!-- 닫기 버튼 -->
-            <button onclick="closeReelViewer()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: white; font-size: 30px; cursor: pointer; z-index: 2001;">&times;</button>
-            
-            <!-- 영상 -->
-            <video id="reelViewerVideo" src="" style="max-width: 100%; max-height: 100%; object-fit: contain;" autoplay loop playsinline></video>
-            
-            <!-- 오른쪽 액션 버튼 -->
-            <div style="position: absolute; right: 20px; bottom: 100px; display: flex; flex-direction: column; gap: 20px; align-items: center;">
-                <div style="text-align: center;">
-                    <button id="reelLikeBtn" onclick="toggleReelLike()" style="background: none; border: none; color: white; font-size: 28px; cursor: pointer;">🤍</button>
-                    <div id="reelLikeCount" style="color: white; font-size: 12px;">0</div>
-                </div>
-                <div style="text-align: center;">
-                    <button onclick="openReelComments()" style="background: none; border: none; color: white; font-size: 28px; cursor: pointer;">💬</button>
-                    <div id="reelCommentCount" style="color: white; font-size: 12px;">0</div>
-                </div>
-            </div>
-            
-            <!-- 하단 정보 -->
-            <div style="position: absolute; left: 20px; bottom: 40px; color: white;">
-                <div id="reelUserName" style="font-weight: 600; margin-bottom: 5px;"></div>
-                <div id="reelCaption" style="font-size: 14px; max-width: 250px;"></div>
-            </div>
-            
-            <!-- 이전/다음 버튼 -->
-            <button onclick="prevReel()" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; padding: 15px; cursor: pointer; border-radius: 50%;">❮</button>
-            <button onclick="nextReel()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; padding: 15px; cursor: pointer; border-radius: 50%;">❯</button>
-        </div>
-    </div>
 
         
         <!-- 새 게시물 작성 -->
@@ -637,6 +561,85 @@ button[onclick*="downloadExcel"]:hover {
             <button onclick="loadMorePosts()" style="padding: 12px 30px; background: white; border: 2px solid #0066cc; color: #0066cc; border-radius: 25px; cursor: pointer; font-weight: 600;">더보기</button>
         </div>
     </div>
+
+    <!-- 릴스 페이지 -->
+        <div id="reelsPage" class="main-content">
+        <h1 class="page-title">🎬 릴스</h1>
+        
+            <!-- 릴스 업로드 버튼 -->
+            <div style="margin-bottom: 20px;">
+                <button onclick="openReelUploadModal()" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 25px; cursor: pointer; font-size: 14px; font-weight: 600;">
+                    + 릴스 올리기
+                </button>
+            </div>
+        
+        <!-- 릴스 그리드 -->
+            <div id="reelsGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">
+                <p style="grid-column: 1/-1; text-align: center; color: #999; padding: 40px;">아직 릴스가 없습니다.</p>
+            </div>
+        </div>
+
+        <!-- 릴스 업로드 모달 -->
+        <div id="reelUploadModal" class="modal">
+            <div class="modal-content" style="max-width: 400px;">
+                <div class="modal-header">
+                    <h2>🎬 릴스 올리기</h2>
+                    <span class="close-btn" onclick="closeReelUploadModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <video id="reelPreviewVideo" src="" style="max-width: 100%; max-height: 300px; border-radius: 10px; display: none;" controls></video>
+                        <label id="reelVideoLabel" style="display: block; padding: 50px; border: 2px dashed #ddd; border-radius: 10px; cursor: pointer;">
+                            <input type="file" id="reelVideoInput" accept="video/*" onchange="previewReelVideo(event)" style="display: none;">
+                            <div style="color: #999;">
+                                <span style="font-size: 40px;">🎬</span>
+                                <p>영상을 선택하세요</p>
+                                <small>(최대 60초)</small>
+                            </div>
+                        </label>
+                    </div>
+                    <textarea id="reelCaptionInput" placeholder="캡션 추가..." style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; resize: none; height: 60px; box-sizing: border-box;"></textarea>
+                </div>
+                <div class="modal-footer" style="text-align: right; padding-top: 15px;">
+                    <button onclick="closeReelUploadModal()" style="padding: 10px 20px; background: #eee; border: none; border-radius: 8px; cursor: pointer; margin-right: 10px;">취소</button>
+                    <button onclick="uploadReel()" id="uploadReelBtn" style="padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer;">올리기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 릴스 뷰어 모달 -->
+        <div id="reelViewerModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: black; z-index: 2000;">
+            <div style="position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+                <!-- 닫기 버튼 -->
+                <button onclick="closeReelViewer()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: white; font-size: 30px; cursor: pointer; z-index: 2001;">&times;</button>
+                
+                <!-- 영상 -->
+                <video id="reelViewerVideo" src="" style="max-width: 100%; max-height: 100%; object-fit: contain;" autoplay loop playsinline></video>
+                
+                <!-- 오른쪽 액션 버튼 -->
+                <div style="position: absolute; right: 20px; bottom: 100px; display: flex; flex-direction: column; gap: 20px; align-items: center;">
+                    <div style="text-align: center;">
+                        <button id="reelLikeBtn" onclick="toggleReelLike()" style="background: none; border: none; color: white; font-size: 28px; cursor: pointer;">🤍</button>
+                        <div id="reelLikeCount" style="color: white; font-size: 12px;">0</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <button onclick="openReelComments()" style="background: none; border: none; color: white; font-size: 28px; cursor: pointer;">💬</button>
+                        <div id="reelCommentCount" style="color: white; font-size: 12px;">0</div>
+                    </div>
+                </div>
+                
+                <!-- 하단 정보 -->
+                <div style="position: absolute; left: 20px; bottom: 40px; color: white;">
+                    <div id="reelUserName" style="font-weight: 600; margin-bottom: 5px;"></div>
+                    <div id="reelCaption" style="font-size: 14px; max-width: 250px;"></div>
+                </div>
+                
+                <!-- 이전/다음 버튼 -->
+                <button onclick="prevReel()" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; padding: 15px; cursor: pointer; border-radius: 50%;">❮</button>
+                <button onclick="nextReel()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; padding: 15px; cursor: pointer; border-radius: 50%;">❯</button>
+            </div>
+        </div>
+
 
     <!-- 댓글 모달 -->
     <div id="commentModal" class="modal">
