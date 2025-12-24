@@ -3535,3 +3535,53 @@ body.modal-open {
         padding-right: 60px;
     }
 }
+
+
+/* ========== 릴스 네비게이션 버튼 ========== */
+.reel-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s, background 0.3s;
+    z-index: 20;
+}
+
+.reel-nav-prev {
+    left: 15px;
+}
+
+.reel-nav-next {
+    right: 15px;
+}
+
+.reel-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* 릴스 뷰어에 호버하면 버튼 표시 */
+#reelViewerModal:hover .reel-nav-btn {
+    opacity: 1;
+}
+
+/* 모바일에서는 터치 시 표시 */
+@media (max-width: 768px) {
+    .reel-nav-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+        opacity: 0.5;
+    }
+    
+    #reelViewerModal:active .reel-nav-btn {
+        opacity: 1;
+    }
+}
