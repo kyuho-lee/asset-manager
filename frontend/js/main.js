@@ -5024,43 +5024,74 @@ function renderReelViewerMedia(reel) {
         mediaHtml += '<img src="' + current.media_url + '" style="max-width: 100%; max-height: 100%; object-fit: contain;">';
     }
     
-    // 다중 미디어 인디케이터
+    // 다중 미디어일 때
     if (media.length > 1) {
-        mediaHtml += '<div style="position: absolute; top: 50px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px;">';
+        // 인디케이터 (아래쪽)
+        mediaHtml += '<div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 15;">';
         for (var i = 0; i < media.length; i++) {
             var isActive = i === currentReelMediaIndex;
-            mediaHtml += '<div style="width: 8px; height: 8px; border-radius: 50%; background: ' + (isActive ? 'white' : 'rgba(255,255,255,0.4)') + ';"></div>';
+            mediaHtml += '<div onclick="goToReelMedia(' + i + ')" style="width: 8px; height: 8px; border-radius: 50%; background: ' + (isActive ? 'white' : 'rgba(255,255,255,0.4)') + '; cursor: pointer;"></div>';
         }
         mediaHtml += '</div>';
         
-        mediaHtml += '<div style="position: absolute; top: 15px; right: 50px; background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px;">' + (currentReelMediaIndex + 1) + '/' + media.length + '</div>';
+        // 카운터 (우측 상단)
+        mediaHtml += '<div style="position: absolute; top: 15px; right: 50px; background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; z-index: 15;">' + (currentReelMediaIndex + 1) + '/' + media.length + '</div>';
+        
+        // 이전 버튼
+        if (currentReelMediaIndex > 0) {
+            mediaHtml += '<button onclick="goToReelMedia(' + (currentReelMediaIndex - 1) + ')" style="position: absolute; top: 50%; left: 15px; transform: translateY(-50%); background: rgba(255,255,255,0.8); border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 18px; z-index: 15;">‹</button>';
+        }
+        
+        // 다음 버튼
+        if (currentReelMediaIndex < media.length - 1) {
+            mediaHtml += '<button onclick="goToReelMedia(' + (currentReelMediaIndex + 1) + ')" style="position: absolute; top: 50%; right: 15px; transform: translateY(-50%); background: rgba(255,255,255,0.8); border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 18px; z-index: 15;">›</button>';
+        }
     }
     
     wrapper.innerHTML = mediaHtml;
 }
 
-// 이전/다음 미디어 (다중일 때)
-function prevReelMedia() {
+// 특정 미디어로 이동
+function goToReelMedia(index) {
     var reel = reelsList[currentReelIndex];
     var media = reel.media || [];
     
-    if (media.length > 1 && currentReelMediaIndex > 0) {
-        currentReelMediaIndex--;
+    if (index >= 0 && index < media.length) {
+        currentReelMediaIndex = index;
         renderReelViewerMedia(reel);
-    } else {
-        prevReel();
     }
 }
 
-function nextReelMedia() {
+// 이전/다음 미디어 (다중일 때)
+function nextReel() {
     var reel = reelsList[currentReelIndex];
     var media = reel.media || [];
     
+    // 다중 미디어면 다음 미디어로
     if (media.length > 1 && currentReelMediaIndex < media.length - 1) {
         currentReelMediaIndex++;
         renderReelViewerMedia(reel);
-    } else {
-        nextReel();
+    } else if (currentReelIndex < reelsList.length - 1) {
+        // 다음 릴스로
+        currentReelIndex++;
+        currentReelMediaIndex = 0;
+        showCurrentReel();
+    }
+}
+
+function prevReel() {
+    var reel = reelsList[currentReelIndex];
+    var media = reel.media || [];
+    
+    // 다중 미디어면 이전 미디어로
+    if (media.length > 1 && currentReelMediaIndex > 0) {
+        currentReelMediaIndex--;
+        renderReelViewerMedia(reel);
+    } else if (currentReelIndex > 0) {
+        // 이전 릴스로
+        currentReelIndex--;
+        currentReelMediaIndex = 0;
+        showCurrentReel();
     }
 }
 
