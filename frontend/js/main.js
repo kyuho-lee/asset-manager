@@ -4016,24 +4016,19 @@ function switchMyPageTab(tab) {
     }
     
     // 선택된 탭 활성화
+    event.target.classList.add('active');
+    
+    // 선택된 콘텐츠 표시
     if (tab === 'info') {
-        document.querySelector('.mypage-tab:nth-child(1)').classList.add('active');
         document.getElementById('myPageInfo').classList.add('active');
+    } else if (tab === 'profile') {
+        document.getElementById('myPageProfile').classList.add('active');
+        loadProfile();
     } else if (tab === 'follow') {
-        document.querySelector('.mypage-tab:nth-child(2)').classList.add('active');
         document.getElementById('myPageFollow').classList.add('active');
-        
-        // 팔로우 데이터 로드
         loadFollowCounts();
-        showFollowList('followers');
     } else if (tab === 'password') {
-        document.querySelector('.mypage-tab:nth-child(3)').classList.add('active');
         document.getElementById('myPagePassword').classList.add('active');
-        
-        // 비밀번호 입력 필드 초기화
-        document.getElementById('currentPassword').value = '';
-        document.getElementById('newPassword').value = '';
-        document.getElementById('confirmNewPassword').value = '';
     }
 }
 
@@ -5084,3 +5079,106 @@ function convertHashtagsToLinks(content) {
 }
 
 console.log('✅ 해시태그 기능 로드 완료');
+
+// ========== 프로필 관련 함수 ==========
+
+// 프로필 이미지 미리보기
+function previewProfileImage(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('profileImg').src = e.target.result;
+        document.getElementById('profileImg').style.display = 'block';
+        document.getElementById('profileInitial').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+}
+
+// 프로필 로드
+async function loadProfile() {
+    try {
+        var response = await apiRequest('/profiles/me', { method: 'GET' });
+        var profile = response.data;
+        
+        // 프로필 이미지
+        if (profile.profile_image) {
+            document.getElementById('profileImg').src = profile.profile_image;
+            document.getElementById('profileImg').style.display = 'block';
+            document.getElementById('profileInitial').style.display = 'none';
+        } else {
+            document.getElementById('profileImg').style.display = 'none';
+            document.getElementById('profileInitial').style.display = 'block';
+            if (currentUser && currentUser.name) {
+                document.getElementById('profileInitial').textContent = currentUser.name.charAt(0).toUpperCase();
+            }
+        }
+        
+        // 상태 메시지
+        document.getElementById('profileStatusMessage').value = profile.status_message || '';
+        
+        // 생년월일
+        if (profile.birth_date) {
+            var date = new Date(profile.birth_date);
+            document.getElementById('profileBirthDate').value = date.toISOString().split('T')[0];
+        } else {
+            document.getElementById('profileBirthDate').value = '';
+        }
+        
+        // 전화번호
+        document.getElementById('profilePhone').value = profile.phone || '';
+        
+    } catch (error) {
+        console.error('프로필 로드 오류:', error);
+    }
+}
+
+// 프로필 저장
+async function saveProfile() {
+    try {
+        var profileImage = null;
+        var fileInput = document.getElementById('profileImageInput');
+        
+        // 이미지 업로드 (Cloudinary)
+        if (fileInput.files.length > 0) {
+            var formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('upload_preset', 'asset_manager');
+            
+            var cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dtthankvg/image/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            var cloudinaryData = await cloudinaryResponse.json();
+            profileImage = cloudinaryData.secure_url;
+        } else {
+            // 기존 이미지 유지
+            var currentImg = document.getElementById('profileImg');
+            if (currentImg.style.display !== 'none' && currentImg.src) {
+                profileImage = currentImg.src;
+            }
+        }
+        
+        var profileData = {
+            profile_image: profileImage,
+            status_message: document.getElementById('profileStatusMessage').value.trim(),
+            birth_date: document.getElementById('profileBirthDate').value || null,
+            phone: document.getElementById('profilePhone').value.trim()
+        };
+        
+        var response = await apiRequest('/profiles/me', {
+            method: 'PUT',
+            body: JSON.stringify(profileData)
+        });
+        
+        alert(response.message);
+        
+    } catch (error) {
+        console.error('프로필 저장 오류:', error);
+        alert('프로필 저장 실패: ' + error.message);
+    }
+}
+
+// switchMyPageTab 함수 수정 필요 - 기존 함수 찾아서 profile 케이스 추가
