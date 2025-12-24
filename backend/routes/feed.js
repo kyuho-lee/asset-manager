@@ -91,9 +91,9 @@ router.get('/hashtags/:tag', async (req, res) => {
             SELECT 
                 p.*,
                 u.name as user_name,
-                (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as like_count,
-                (SELECT COUNT(*) FROM post_comments WHERE post_id = p.id) as comment_count,
-                (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id AND user_id = ?) as is_liked
+                (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as like_count,
+                (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
+                (SELECT COUNT(*) FROM likes WHERE post_id = p.id AND user_id = ?) as is_liked
             FROM posts p
             JOIN users u ON p.user_id = u.id
             JOIN post_hashtags ph ON p.id = ph.post_id
