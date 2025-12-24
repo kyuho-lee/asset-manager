@@ -5007,6 +5007,48 @@ async function showCurrentReel() {
         followBtn.style.display = 'inline-block';
         checkReelFollowStatus(reel.user_id);
     }
+
+    // 삭제 버튼 (본인 릴스일 때만 표시)
+    var deleteBtnWrapper = document.getElementById('reelDeleteBtnWrapper');
+    if (currentUser && reel.user_id === currentUser.id) {
+        deleteBtnWrapper.style.display = 'block';
+    } else {
+        deleteBtnWrapper.style.display = 'none';
+    }
+}
+
+// 릴스 삭제
+async function deleteReel() {
+    var reel = reelsList[currentReelIndex];
+    if (!reel) return;
+    
+    if (!confirm('이 릴스를 삭제하시겠습니까?')) {
+        return;
+    }
+    
+    try {
+        var response = await apiRequest('/reels/' + reel.id, { method: 'DELETE' });
+        
+        if (response.success) {
+            alert('릴스가 삭제되었습니다.');
+            
+            // 목록에서 제거
+            reelsList.splice(currentReelIndex, 1);
+            
+            // 다음 릴스로 이동하거나 뷰어 닫기
+            if (reelsList.length === 0) {
+                closeReelViewer();
+            } else if (currentReelIndex >= reelsList.length) {
+                currentReelIndex = reelsList.length - 1;
+                showCurrentReel();
+            } else {
+                showCurrentReel();
+            }
+        }
+    } catch (error) {
+        console.error('릴스 삭제 오류:', error);
+        alert('릴스 삭제에 실패했습니다.');
+    }
 }
 
 // 릴스 미디어 렌더링
