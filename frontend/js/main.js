@@ -3420,6 +3420,9 @@ async function loadFeed() {
         document.getElementById('feedUserAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
     }
     
+    // 인기 해시태그 로드
+    await loadPopularHashtags();
+    
     await loadPosts(true);
 }
 
@@ -3518,7 +3521,7 @@ function renderPostCard(post) {
     // 내용
     if (post.content) {
         html += '<div style="padding: 15px;">';
-        html += '<p style="margin: 0; line-height: 1.6; white-space: pre-wrap;">' + post.content + '</p>';
+        html += '<p style="margin: 0; line-height: 1.6; white-space: pre-wrap;">' + convertHashtagsToLinks(post.content) + '</p>';
         html += '</div>';
     }
     
@@ -5003,3 +5006,74 @@ function clearUserSearch() {
 }
 
 console.log('✅ 사용자 검색 기능 로드 완료');
+
+
+javascript// ========== 해시태그 기능 ==========
+
+// 인기 해시태그 로드
+async function loadPopularHashtags() {
+    try {
+        var response = await apiRequest('/feed/hashtags/popular', { method: 'GET' });
+        var hashtags = response.data || [];
+        
+        var container = document.getElementById('hashtagList');
+        if (!container) return;
+        
+        if (hashtags.length === 0) {
+            container.innerHTML = '<span style="color: #999; font-size: 13px;">아직 해시태그가 없습니다.</span>';
+            return;
+        }
+        
+        var html = '';
+        for (var i = 0; i < hashtags.length; i++) {
+            var tag = hashtags[i];
+            html += '<span onclick="searchByHashtag(\'' + tag.name + '\')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">';
+            html += '#' + tag.name + ' <small style="opacity: 0.8;">(' + tag.post_count + ')</small>';
+            html += '</span>';
+        }
+        
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('인기 해시태그 로드 오류:', error);
+    }
+}
+
+// 해시태그로 검색
+async function searchByHashtag(tag) {
+    try {
+        var response = await apiRequest('/feed/hashtags/' + encodeURIComponent(tag), { method: 'GET' });
+        var posts = response.data || [];
+        
+        var container = document.getElementById('feedList');
+        
+        // 검색 결과 헤더
+        var html = '<div style="background: #e3f2fd; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">';
+        html += '<span style="font-weight: 600; color: #0066cc;">#' + tag + ' 검색 결과 (' + posts.length + '개)</span>';
+        html += '<button onclick="loadFeed()" style="padding: 8px 16px; background: #0066cc; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 13px;">전체 피드로</button>';
+        html += '</div>';
+        
+        if (posts.length === 0) {
+            html += '<p style="text-align: center; color: #999; padding: 40px;">해당 해시태그의 게시물이 없습니다.</p>';
+        } else {
+            for (var i = 0; i < posts.length; i++) {
+                html += renderPostCard(posts[i]);
+            }
+        }
+        
+        container.innerHTML = html;
+        
+        // 더보기 숨기기
+        document.getElementById('loadMoreArea').style.display = 'none';
+        
+    } catch (error) {
+        console.error('해시태그 검색 오류:', error);
+    }
+}
+
+// 게시물 내용에서 해시태그 링크 변환
+function convertHashtagsToLinks(content) {
+    if (!content) return '';
+    return content.replace(/#([가-힣a-zA-Z0-9_]+)/g, '<span style="color: #0066cc; cursor: pointer;" onclick="searchByHashtag(\'$1\')">#$1</span>');
+}
+
+console.log('✅ 해시태그 기능 로드 완료');
