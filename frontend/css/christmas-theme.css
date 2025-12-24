@@ -1,6 +1,7 @@
 /* ========== 🎄 크리스마스 테마 2024 ========== */
 /* 사용: index.html에 <link rel="stylesheet" href="christmas-theme.css"> 추가 */
 /* 해제: 위 라인 삭제 또는 주석 처리 */
+/* ========== 🎄 크리스마스 테마 2024 ========== */
 
 /* 크리스마스 색상 변수 */
 :root {
@@ -10,6 +11,19 @@
     --xmas-snow: #fffafa;
     --xmas-dark-red: #8b0000;
     --xmas-dark-green: #006400;
+}
+
+/* 크리스마스 인사 배너 */
+.xmas-banner {
+    background: linear-gradient(135deg, var(--xmas-red) 0%, var(--xmas-green) 100%);
+    color: white;
+    text-align: center;
+    padding: 12px;
+    font-weight: bold;
+    font-size: 16px;
+    border-bottom: 3px solid var(--xmas-gold);
+    position: relative;
+    z-index: 100;
 }
 
 /* 배경에 눈 내리는 효과 */
@@ -29,11 +43,11 @@ body::before {
 }
 
 @keyframes snowfall {
-    0% { background-position: 0 0, 0 0; }
-    100% { background-position: 500px 1000px, 300px 800px; }
+    0% { background-position: 0 0; }
+    100% { background-position: 500px 1000px; }
 }
 
-/* 네비게이션 바 - 크리스마스 그라디언트 */
+/* 네비게이션 바 */
 .bottom-nav {
     background: linear-gradient(135deg, var(--xmas-red) 0%, var(--xmas-dark-red) 100%) !important;
     border-top: 3px solid var(--xmas-gold) !important;
@@ -48,30 +62,32 @@ body::before {
 }
 
 /* 헤더 */
-.app-header {
+.header {
     background: linear-gradient(135deg, var(--xmas-green) 0%, var(--xmas-dark-green) 100%) !important;
     border-bottom: 3px solid var(--xmas-gold) !important;
 }
 
-.app-header h1 {
+.header .logo {
     color: var(--xmas-snow) !important;
 }
 
-/* 버튼 - 크리스마스 스타일 */
+/* 버튼 */
 .btn-primary-gradient,
-.btn-primary {
+.btn-primary,
+button[type="submit"] {
     background: linear-gradient(135deg, var(--xmas-red) 0%, var(--xmas-dark-red) 100%) !important;
     border: 2px solid var(--xmas-gold) !important;
     color: white !important;
 }
 
 .btn-primary-gradient:hover,
-.btn-primary:hover {
+.btn-primary:hover,
+button[type="submit"]:hover {
     background: linear-gradient(135deg, var(--xmas-dark-red) 0%, var(--xmas-red) 100%) !important;
     box-shadow: 0 0 15px var(--xmas-gold) !important;
 }
 
-/* 카드 - 눈 테두리 효과 */
+/* 카드 */
 .post-card,
 .chat-item,
 .modal-content {
@@ -89,13 +105,7 @@ body::before {
     color: white !important;
 }
 
-/* 좋아요 버튼 - 빨간색 강조 */
-.post-card .like-btn.liked,
-.post-card .like-btn:hover {
-    color: var(--xmas-red) !important;
-}
-
-/* 스토리 링 - 크리스마스 색상 */
+/* 스토리 링 */
 .story-item > div:first-child {
     background: linear-gradient(135deg, var(--xmas-red), var(--xmas-green), var(--xmas-gold)) !important;
 }
@@ -107,15 +117,12 @@ textarea:focus {
     box-shadow: 0 0 0 3px rgba(34, 139, 34, 0.2) !important;
 }
 
-/* 로그인/회원가입 버튼 */
-#authCard button {
-    background: linear-gradient(135deg, var(--xmas-red) 0%, var(--xmas-dark-red) 100%) !important;
-}
-
 /* 탭 활성화 */
-.tab-btn.active {
+.tab-btn.active,
+.auth-tab.active {
     background: var(--xmas-red) !important;
     color: white !important;
+    border-color: var(--xmas-red) !important;
 }
 
 /* 채팅 버블 */
@@ -128,7 +135,7 @@ textarea:focus {
     border: 1px solid var(--xmas-green) !important;
 }
 
-/* 피드 작성 버튼 */
+/* 피드 아바타 */
 #feedUserAvatar {
     background: linear-gradient(135deg, var(--xmas-red) 0%, var(--xmas-green) 100%) !important;
 }
@@ -140,32 +147,20 @@ textarea:focus {
     border-color: var(--xmas-gold) !important;
 }
 
-/* 팔로우 버튼 */
-#reelFollowBtn {
-    border-color: var(--xmas-gold) !important;
-}
-
-/* 릴스 뷰어 더보기 메뉴 */
+/* 릴스 메뉴 */
 #reelMoreMenu {
     background: var(--xmas-dark-green) !important;
     border: 2px solid var(--xmas-gold) !important;
 }
 
-/* 크리스마스 인사 배너 (선택사항) */
-.xmas-banner {
-    background: linear-gradient(135deg, var(--xmas-red) 0%, var(--xmas-green) 100%);
-    color: white;
-    text-align: center;
-    padding: 12px;
-    font-weight: bold;
-    font-size: 16px;
-    border-bottom: 3px solid var(--xmas-gold);
+/* 로그인 카드 제목 */
+#authCard h2 {
+    color: var(--xmas-red) !important;
 }
 
-/* 로딩 스피너 */
-.loading-spinner {
-    border-color: var(--xmas-green) !important;
-    border-top-color: var(--xmas-red) !important;
+/* 링크 */
+a {
+    color: var(--xmas-green) !important;
 }
 
 /* 스크롤바 */
@@ -173,29 +168,11 @@ textarea:focus {
     background: linear-gradient(var(--xmas-red), var(--xmas-green)) !important;
 }
 
-/* 알림 토스트 */
-.toast {
-    background: var(--xmas-green) !important;
-    border: 2px solid var(--xmas-gold) !important;
-}
-
-/* 🎄 크리스마스 장식 이모지 추가 */
-.app-header h1::before {
+/* 헤더 로고 장식 */
+.header .logo::before {
     content: '🎄 ';
 }
 
-.app-header h1::after {
+.header .logo::after {
     content: ' 🎅';
 }
-
-/* 네비게이션 아이콘 옆에 장식 */
-.bottom-nav .nav-item:first-child::before {
-    content: '🎁 ';
-}
-
-/* 크리스마스 커서 (선택사항) */
-/*
-body {
-    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ctext y='24' font-size='24'%3E❄️%3C/text%3E%3C/svg%3E"), auto;
-}
-*/
