@@ -5009,18 +5009,23 @@ async function showCurrentReel() {
     }
 
     // 삭제 버튼 (본인 릴스일 때만 표시)
-    var deleteBtnWrapper = document.getElementById('reelDeleteBtnWrapper');
+    var deleteBtn = document.getElementById('reelDeleteBtn');
     if (currentUser && reel.user_id === currentUser.id) {
-        deleteBtnWrapper.style.display = 'block';
+        deleteBtn.style.display = 'flex';
     } else {
-        deleteBtnWrapper.style.display = 'none';
+        deleteBtn.style.display = 'none';
     }
+
+    // 메뉴 닫기
+    document.getElementById('reelMoreMenu').style.display = 'none';
 }
 
 // 릴스 삭제
 async function deleteReel() {
     var reel = reelsList[currentReelIndex];
     if (!reel) return;
+    
+    toggleReelMenu(); // 메뉴 닫기
     
     if (!confirm('이 릴스를 삭제하시겠습니까?')) {
         return;
@@ -5032,10 +5037,8 @@ async function deleteReel() {
         if (response.success) {
             alert('릴스가 삭제되었습니다.');
             
-            // 목록에서 제거
             reelsList.splice(currentReelIndex, 1);
             
-            // 다음 릴스로 이동하거나 뷰어 닫기
             if (reelsList.length === 0) {
                 closeReelViewer();
             } else if (currentReelIndex >= reelsList.length) {
@@ -5050,6 +5053,13 @@ async function deleteReel() {
         alert('릴스 삭제에 실패했습니다.');
     }
 }
+
+// 릴스 뷰어 클릭 시 메뉴 닫기
+document.getElementById('reelViewerModal').addEventListener('click', function(e) {
+    if (!e.target.closest('.reel-actions')) {
+        document.getElementById('reelMoreMenu').style.display = 'none';
+    }
+});
 
 // 릴스 미디어 렌더링
 function renderReelViewerMedia(reel) {
@@ -5085,6 +5095,38 @@ function renderReelViewerMedia(reel) {
     if (media.length > 1) {
         initReelSwipe(wrapper, reel);
     }
+}
+
+// 릴스 더보기 메뉴 토글
+function toggleReelMenu() {
+    var menu = document.getElementById('reelMoreMenu');
+    if (menu.style.display === 'none') {
+        menu.style.display = 'block';
+    } else {
+        menu.style.display = 'none';
+    }
+}
+
+// 릴스 공유
+function shareReel() {
+    var reel = reelsList[currentReelIndex];
+    if (!reel) return;
+    
+    // URL 복사
+    var url = window.location.origin + '?reel=' + reel.id;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: reel.caption || '릴스',
+            url: url
+        });
+    } else {
+        navigator.clipboard.writeText(url).then(function() {
+            alert('링크가 복사되었습니다!');
+        });
+    }
+    
+    toggleReelMenu();
 }
 
 // 스와이프 이벤트 초기화

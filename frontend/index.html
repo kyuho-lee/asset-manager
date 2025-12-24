@@ -666,28 +666,34 @@ button[onclick*="downloadExcel"]:hover {
         <div class="reel-bottom-area" style="z-index: 10;">
             <!-- 우측 액션 버튼 (세로 배치) -->
             <div class="reel-actions">
+                <!-- 좋아요 -->
                 <div style="text-align: center;">
                     <button onclick="toggleReelLike()" style="background: none; border: none; cursor: pointer; padding: 10px;">
                         <span id="reelLikeBtn" style="font-size: 28px;">🤍</span>
                     </button>
                     <p id="reelLikeCount" style="color: white; font-size: 12px; margin: 5px 0 0 0;">0</p>
                 </div>
+                <!-- 댓글 -->
                 <div style="text-align: center;">
                     <button onclick="openReelComments()" style="background: none; border: none; cursor: pointer; padding: 10px;">
                         <span style="font-size: 26px;">💬</span>
                     </button>
                     <p id="reelCommentCount" style="color: white; font-size: 12px; margin: 5px 0 0 0;">0</p>
                 </div>
-                <div style="text-align: center;">
-                    <button style="background: none; border: none; cursor: pointer; padding: 10px;">
-                        <span style="font-size: 26px;">📤</span>
+                <!-- 더보기 메뉴 -->
+                <div style="text-align: center; position: relative;">
+                    <button onclick="toggleReelMenu()" style="background: none; border: none; cursor: pointer; padding: 10px;">
+                        <span style="font-size: 24px;">⋯</span>
                     </button>
-                </div>
-                <!-- 삭제 버튼 (본인 릴스일 때만 표시) -->
-                <div id="reelDeleteBtnWrapper" style="text-align: center; display: none;">
-                    <button onclick="deleteReel()" style="background: none; border: none; cursor: pointer; padding: 10px;">
-                        <span style="font-size: 24px;">🗑️</span>
-                    </button>
+                    <!-- 드롭다운 메뉴 -->
+                    <div id="reelMoreMenu" style="display: none; position: absolute; bottom: 50px; right: 0; background: #222; border-radius: 12px; overflow: hidden; min-width: 140px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+                        <button onclick="shareReel()" style="width: 100%; padding: 14px 18px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px;">
+                            <span>📤</span> 공유하기
+                        </button>
+                        <button id="reelDeleteBtn" onclick="deleteReel()" style="width: 100%; padding: 14px 18px; background: none; border: none; color: #ff4444; text-align: left; cursor: pointer; font-size: 14px; display: none; align-items: center; gap: 10px; border-top: 1px solid #333;">
+                            <span>🗑️</span> 삭제하기
+                        </button>
+                    </div>
                 </div>
             </div>
             
