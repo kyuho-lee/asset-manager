@@ -85,12 +85,13 @@ router.get('/following', async (req, res) => {
         const userId = req.user.id;
         
         const [following] = await db.query(`
-            SELECT u.id, u.name, u.email, f.created_at as followed_at
-            FROM follows f
-            JOIN users u ON f.following_id = u.id
-            WHERE f.follower_id = ?
-            ORDER BY f.created_at DESC
-        `, [userId]);
+        SELECT u.id, u.name, u.email, f.created_at as followed_at, pr.profile_image
+        FROM follows f
+        JOIN users u ON f.following_id = u.id
+        LEFT JOIN profiles pr ON u.id = pr.user_id
+        WHERE f.follower_id = ?
+        ORDER BY f.created_at DESC
+    `, [userId]);
         
         res.json({ success: true, data: following });
     } catch (error) {
@@ -105,12 +106,13 @@ router.get('/followers', async (req, res) => {
         const userId = req.user.id;
         
         const [followers] = await db.query(`
-            SELECT u.id, u.name, u.email, f.created_at as followed_at
-            FROM follows f
-            JOIN users u ON f.follower_id = u.id
-            WHERE f.following_id = ?
-            ORDER BY f.created_at DESC
-        `, [userId]);
+        SELECT u.id, u.name, u.email, f.created_at as followed_at, pr.profile_image
+        FROM follows f
+        JOIN users u ON f.follower_id = u.id
+        LEFT JOIN profiles pr ON u.id = pr.user_id
+        WHERE f.following_id = ?
+        ORDER BY f.created_at DESC
+    `, [userId]);
         
         res.json({ success: true, data: followers });
     } catch (error) {
@@ -195,18 +197,20 @@ router.get('/search/users', async (req, res) => {
         }
         
         const [users] = await db.query(`
-            SELECT 
-                u.id, 
-                u.name, 
-                u.email,
-                (SELECT COUNT(*) FROM follows WHERE following_id = u.id) as follower_count,
-                (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) as following_count,
-                (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.id) as is_following
-            FROM users u
-            WHERE u.id != ? AND (u.name LIKE ? OR u.email LIKE ?)
-            ORDER BY u.name
-            LIMIT 20
-        `, [userId, userId, '%' + query + '%', '%' + query + '%']);
+        SELECT 
+            u.id, 
+            u.name, 
+            u.email,
+            pr.profile_image,
+            (SELECT COUNT(*) FROM follows WHERE following_id = u.id) as follower_count,
+            (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) as following_count,
+            (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.id) as is_following
+        FROM users u
+        LEFT JOIN profiles pr ON u.id = pr.user_id
+        WHERE u.id != ? AND (u.name LIKE ? OR u.email LIKE ?)
+        ORDER BY u.name
+        LIMIT 20
+    `, [userId, userId, '%' + query + '%', '%' + query + '%']);
         
         res.json({ success: true, data: users });
     } catch (error) {

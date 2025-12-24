@@ -88,20 +88,22 @@ router.get('/hashtags/:tag', async (req, res) => {
         var tag = req.params.tag.toLowerCase();
         
         var [posts] = await db.query(`
-            SELECT 
-                p.*,
-                u.name as user_name,
-                (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as like_count,
-                (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
-                (SELECT COUNT(*) FROM likes WHERE post_id = p.id AND user_id = ?) as is_liked
-            FROM posts p
-            JOIN users u ON p.user_id = u.id
-            JOIN post_hashtags ph ON p.id = ph.post_id
-            JOIN hashtags h ON ph.hashtag_id = h.id
-            WHERE h.name = ?
-            ORDER BY p.created_at DESC
-            LIMIT 50
-        `, [userId, tag]);
+        SELECT 
+            p.*,
+            u.name as user_name,
+            pr.profile_image as user_profile_image,
+            (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as like_count,
+            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
+            (SELECT COUNT(*) FROM likes WHERE post_id = p.id AND user_id = ?) as is_liked
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+        LEFT JOIN profiles pr ON p.user_id = pr.user_id
+        JOIN post_hashtags ph ON p.id = ph.post_id
+        JOIN hashtags h ON ph.hashtag_id = h.id
+        WHERE h.name = ?
+        ORDER BY p.created_at DESC
+        LIMIT 50
+    `, [userId, tag]);
         
         res.json({ success: true, data: posts });
     } catch (error) {
@@ -119,22 +121,24 @@ router.get('/', async (req, res) => {
         const userId = req.user.id;
         
         const [posts] = await db.query(`
-            SELECT 
-                p.id,
-                p.content,
-                p.image_url,
-                p.created_at,
-                p.user_id,
-                u.name as user_name,
-                u.email as user_email,
-                (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as like_count,
-                (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
-                (SELECT COUNT(*) FROM likes WHERE post_id = p.id AND user_id = ?) as is_liked
-            FROM posts p
-            JOIN users u ON p.user_id = u.id
-            ORDER BY p.created_at DESC
-            LIMIT ? OFFSET ?
-        `, [userId, parseInt(limit), parseInt(offset)]);
+        SELECT 
+            p.id,
+            p.content,
+            p.image_url,
+            p.created_at,
+            p.user_id,
+            u.name as user_name,
+            u.email as user_email,
+            pr.profile_image as user_profile_image,
+            (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as like_count,
+            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
+            (SELECT COUNT(*) FROM likes WHERE post_id = p.id AND user_id = ?) as is_liked
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+        LEFT JOIN profiles pr ON p.user_id = pr.user_id
+        ORDER BY p.created_at DESC
+        LIMIT ? OFFSET ?
+    `, [userId, parseInt(limit), parseInt(offset)]);
         
         // 총 게시물 수
         const [countResult] = await db.query('SELECT COUNT(*) as total FROM posts');
@@ -273,17 +277,19 @@ router.get('/:postId/comments', async (req, res) => {
         const { postId } = req.params;
         
         const [comments] = await db.query(`
-            SELECT 
-                c.id,
-                c.content,
-                c.created_at,
-                c.user_id,
-                u.name as user_name
-            FROM comments c
-            JOIN users u ON c.user_id = u.id
-            WHERE c.post_id = ?
-            ORDER BY c.created_at ASC
-        `, [postId]);
+        SELECT 
+            c.id,
+            c.content,
+            c.created_at,
+            c.user_id,
+            u.name as user_name,
+            pr.profile_image as user_profile_image
+        FROM comments c
+        JOIN users u ON c.user_id = u.id
+        LEFT JOIN profiles pr ON c.user_id = pr.user_id
+        WHERE c.post_id = ?
+        ORDER BY c.created_at ASC
+    `, [postId]);
         
         res.json({ success: true, data: comments });
     } catch (error) {
@@ -310,11 +316,12 @@ router.post('/:postId/comments', async (req, res) => {
         
         // 작성된 댓글 반환
         const [newComment] = await db.query(`
-            SELECT c.id, c.content, c.created_at, c.user_id, u.name as user_name
-            FROM comments c
-            JOIN users u ON c.user_id = u.id
-            WHERE c.id = ?
-        `, [result.insertId]);
+        SELECT c.id, c.content, c.created_at, c.user_id, u.name as user_name, pr.profile_image as user_profile_image
+        FROM comments c
+        JOIN users u ON c.user_id = u.id
+        LEFT JOIN profiles pr ON c.user_id = pr.user_id
+        WHERE c.id = ?
+    `, [result.insertId]);
         
         // ===== 알림 발송 =====
         // 게시물 작성자에게 알림 (본인 제외)

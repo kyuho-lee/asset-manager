@@ -70,11 +70,12 @@ router.get('/rooms', async (req, res) => {
         for (let room of rooms) {
             if (room.type === 'direct') {
                 const [participants] = await db.query(`
-                    SELECT u.id, u.name, u.email
-                    FROM chat_participants cp
-                    JOIN users u ON cp.user_id = u.id
-                    WHERE cp.room_id = ? AND cp.user_id != ?
-                `, [room.id, userId]);
+                SELECT u.id, u.name, u.email, pr.profile_image
+                FROM chat_participants cp
+                JOIN users u ON cp.user_id = u.id
+                LEFT JOIN profiles pr ON u.id = pr.user_id
+                WHERE cp.room_id = ? AND cp.user_id != ?
+            `, [room.id, userId]);
                 
                 if (participants.length > 0) {
                     room.partner = participants[0];
@@ -186,9 +187,11 @@ router.get('/rooms/:roomId/messages', async (req, res) => {
                 cm.created_at,
                 cm.sender_id,
                 u.name as sender_name,
-                u.email as sender_email
+                u.email as sender_email,
+                pr.profile_image as sender_profile_image
             FROM chat_messages cm
             JOIN users u ON cm.sender_id = u.id
+            LEFT JOIN profiles pr ON cm.sender_id = pr.user_id
             WHERE cm.room_id = ?
         `;
         const params = [roomId];
@@ -250,19 +253,21 @@ router.post('/rooms/:roomId/messages', async (req, res) => {
         
         // 저장된 메시지 조회
         const [newMessage] = await db.query(`
-            SELECT 
-                cm.id,
-                cm.message,
-                cm.message_type,
-                cm.file_url,
-                cm.created_at,
-                cm.sender_id,
-                u.name as sender_name,
-                u.email as sender_email
-            FROM chat_messages cm
-            JOIN users u ON cm.sender_id = u.id
-            WHERE cm.id = ?
-        `, [result.insertId]);
+        SELECT 
+            cm.id,
+            cm.message,
+            cm.message_type,
+            cm.file_url,
+            cm.created_at,
+            cm.sender_id,
+            u.name as sender_name,
+            u.email as sender_email,
+            pr.profile_image as sender_profile_image
+        FROM chat_messages cm
+        JOIN users u ON cm.sender_id = u.id
+        LEFT JOIN profiles pr ON cm.sender_id = pr.user_id
+        WHERE cm.id = ?
+    `, [result.insertId]);
         
         // ===== 알림 발송 =====
         // 채팅방의 다른 참여자들에게 알림
@@ -305,8 +310,12 @@ router.get('/users', async (req, res) => {
         const userId = req.user.id;
         
         const [users] = await db.query(`
-            SELECT id, name, email FROM users WHERE id != ? ORDER BY name
-        `, [userId]);
+        SELECT u.id, u.name, u.email, pr.profile_image
+        FROM users u
+        LEFT JOIN profiles pr ON u.id = pr.user_id
+        WHERE u.id != ? 
+        ORDER BY u.name
+    `, [userId]);
         
         res.json({ success: true, data: users });
     } catch (error) {
