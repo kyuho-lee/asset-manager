@@ -4906,3 +4906,100 @@ function openReelComments() {
 }
 
 console.log('✅ 릴스 기능 로드 완료');
+
+좋습니다! 🎉
+
+🔧 Step 3: main.js에 검색 기능 추가
+main.js 맨 아래에 추가하세요:
+javascript// ========== 사용자 검색 기능 ==========
+var searchTimeout = null;
+
+// 사용자 검색
+async function searchUsers(query) {
+    var resultsContainer = document.getElementById('userSearchResults');
+    
+    // 입력이 없으면 숨기기
+    if (!query || query.trim().length < 1) {
+        resultsContainer.style.display = 'none';
+        return;
+    }
+    
+    // 디바운스 (타이핑 멈추고 300ms 후 검색)
+    if (searchTimeout) clearTimeout(searchTimeout);
+    
+    searchTimeout = setTimeout(async function() {
+        try {
+            var response = await apiRequest('/follows/search/users?q=' + encodeURIComponent(query.trim()), { method: 'GET' });
+            var users = response.data || [];
+            
+            if (users.length === 0) {
+                resultsContainer.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">검색 결과가 없습니다.</p>';
+                resultsContainer.style.display = 'block';
+                return;
+            }
+            
+            var html = '';
+            for (var i = 0; i < users.length; i++) {
+                var user = users[i];
+                var initial = user.name.charAt(0).toUpperCase();
+                var isFollowing = user.is_following > 0;
+                
+                html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee;">';
+                html += '<div style="display: flex; align-items: center; gap: 12px;">';
+                html += '<div style="width: 45px; height: 45px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">' + initial + '</div>';
+                html += '<div>';
+                html += '<div style="font-weight: 600;">' + user.name + '</div>';
+                html += '<div style="font-size: 12px; color: #999;">' + user.email + '</div>';
+                html += '<div style="font-size: 11px; color: #666; margin-top: 3px;">팔로워 ' + (user.follower_count || 0) + ' · 팔로잉 ' + (user.following_count || 0) + '</div>';
+                html += '</div>';
+                html += '</div>';
+                
+                if (isFollowing) {
+                    html += '<button id="search-follow-btn-' + user.id + '" onclick="toggleSearchFollow(' + user.id + ')" style="padding: 8px 16px; background: #f0f0f0; color: #666; border: none; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600;">팔로잉</button>';
+                } else {
+                    html += '<button id="search-follow-btn-' + user.id + '" onclick="toggleSearchFollow(' + user.id + ')" style="padding: 8px 16px; background: #0066cc; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600;">팔로우</button>';
+                }
+                
+                html += '</div>';
+            }
+            
+            resultsContainer.innerHTML = html;
+            resultsContainer.style.display = 'block';
+            
+        } catch (error) {
+            console.error('사용자 검색 오류:', error);
+        }
+    }, 300);
+}
+
+// 검색에서 팔로우 토글
+async function toggleSearchFollow(userId) {
+    var btn = document.getElementById('search-follow-btn-' + userId);
+    if (!btn) return;
+    
+    var isFollowing = btn.textContent.trim() === '팔로잉';
+    
+    try {
+        if (isFollowing) {
+            await apiRequest('/follows/' + userId, { method: 'DELETE' });
+            btn.textContent = '팔로우';
+            btn.style.background = '#0066cc';
+            btn.style.color = 'white';
+        } else {
+            await apiRequest('/follows/' + userId, { method: 'POST' });
+            btn.textContent = '팔로잉';
+            btn.style.background = '#f0f0f0';
+            btn.style.color = '#666';
+        }
+    } catch (error) {
+        console.error('팔로우 토글 오류:', error);
+    }
+}
+
+// 검색 초기화
+function clearUserSearch() {
+    document.getElementById('userSearchInput').value = '';
+    document.getElementById('userSearchResults').style.display = 'none';
+}
+
+console.log('✅ 사용자 검색 기능 로드 완료');

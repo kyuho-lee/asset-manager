@@ -184,4 +184,36 @@ router.delete('/follower/:userId', async (req, res) => {
     }
 });
 
+// 사용자 검색
+router.get('/search/users', async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const query = req.query.q || '';
+        
+        if (query.length < 1) {
+            return res.json({ success: true, data: [] });
+        }
+        
+        const [users] = await db.query(`
+            SELECT 
+                u.id, 
+                u.name, 
+                u.email,
+                (SELECT COUNT(*) FROM follows WHERE following_id = u.id) as follower_count,
+                (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) as following_count,
+                (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.id) as is_following
+            FROM users u
+            WHERE u.id != ? AND (u.name LIKE ? OR u.email LIKE ?)
+            ORDER BY u.name
+            LIMIT 20
+        `, [userId, userId, '%' + query + '%', '%' + query + '%']);
+        
+        res.json({ success: true, data: users });
+    } catch (error) {
+        console.error('사용자 검색 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    }
+});
+
 module.exports = router;
+
