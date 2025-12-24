@@ -4874,27 +4874,84 @@ async function showCurrentReel() {
     // 조회수 증가
     await apiRequest('/reels/' + reel.id + '/view', { method: 'POST' });
     
-    // UI 업데이트
+    // 영상
     document.getElementById('reelViewerVideo').src = reel.video_url;
-
-    // 프로필 이미지 + 이름
-    var reelUserInfoEl = document.getElementById('reelUserInfo');
-    var userHtml = '<div style="display: flex; align-items: center; gap: 10px;">';
-    userHtml += '<div style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; border: 2px solid white; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold;">';
+    
+    // 프로필 아바타
+    var avatarEl = document.getElementById('reelUserAvatar');
     if (reel.user_profile_image) {
-        userHtml += '<img src="' + reel.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">';
+        avatarEl.innerHTML = '<img src="' + reel.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">';
     } else {
-        userHtml += reel.user_name.charAt(0).toUpperCase();
+        avatarEl.innerHTML = '';
+        avatarEl.textContent = reel.user_name.charAt(0).toUpperCase();
     }
-    userHtml += '</div>';
-    userHtml += '<span style="font-weight: 600;">@' + reel.user_name + '</span>';
-    userHtml += '</div>';
-    reelUserInfoEl.innerHTML = userHtml;
-
+    
+    // 이름
+    document.getElementById('reelUserName').textContent = reel.user_name;
+    
+    // 캡션
     document.getElementById('reelCaption').textContent = reel.caption || '';
+    
+    // 좋아요
     document.getElementById('reelLikeCount').textContent = reel.like_count || 0;
-    document.getElementById('reelCommentCount').textContent = reel.comment_count || 0;
     document.getElementById('reelLikeBtn').textContent = reel.is_liked ? '❤️' : '🤍';
+    
+    // 댓글
+    document.getElementById('reelCommentCount').textContent = reel.comment_count || 0;
+    
+    // 팔로우 버튼 (본인이면 숨김)
+    var followBtn = document.getElementById('reelFollowBtn');
+    if (currentUser && reel.user_id === currentUser.id) {
+        followBtn.style.display = 'none';
+    } else {
+        followBtn.style.display = 'inline-block';
+        checkReelFollowStatus(reel.user_id);
+    }
+}
+
+// 릴스에서 팔로우 상태 확인
+async function checkReelFollowStatus(userId) {
+    try {
+        var response = await apiRequest('/follows/status/' + userId, { method: 'GET' });
+        var btn = document.getElementById('reelFollowBtn');
+        
+        if (response.isFollowing) {
+            btn.textContent = '팔로잉';
+            btn.style.background = 'rgba(255,255,255,0.2)';
+            btn.style.borderColor = 'transparent';
+        } else {
+            btn.textContent = '팔로우';
+            btn.style.background = 'transparent';
+            btn.style.borderColor = 'white';
+        }
+    } catch (error) {
+        console.error('팔로우 상태 확인 오류:', error);
+    }
+}
+
+// 릴스에서 팔로우 토글
+async function toggleReelFollow() {
+    var reel = reelsList[currentReelIndex];
+    if (!reel) return;
+    
+    var btn = document.getElementById('reelFollowBtn');
+    var isFollowing = btn.textContent === '팔로잉';
+    
+    try {
+        if (isFollowing) {
+            await apiRequest('/follows/' + reel.user_id, { method: 'DELETE' });
+            btn.textContent = '팔로우';
+            btn.style.background = 'transparent';
+            btn.style.borderColor = 'white';
+        } else {
+            await apiRequest('/follows/' + reel.user_id, { method: 'POST' });
+            btn.textContent = '팔로잉';
+            btn.style.background = 'rgba(255,255,255,0.2)';
+            btn.style.borderColor = 'transparent';
+        }
+    } catch (error) {
+        console.error('팔로우 토글 오류:', error);
+    }
 }
 
 // 릴스 좋아요 토글

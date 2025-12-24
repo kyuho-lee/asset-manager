@@ -634,64 +634,54 @@ button[onclick*="downloadExcel"]:hover {
         </div>
     </div>
 
-    <!-- 릴스 뷰어 모달 -->
-    <div id="reelViewerModal" class="reel-viewer" style="display: none;">
-        <button class="reel-viewer-close" onclick="closeReelViewer()">✕</button>
+    <!-- 릴스 뷰어 모달 (인스타그램 스타일) -->
+    <div id="reelViewerModal" class="reel-viewer" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 10000;">
         
-        <!-- 영상 영역 -->
-        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 120px; display: flex; align-items: center; justify-content: center; background: #000;">
-            <video id="reelViewerVideo" class="reel-viewer-video" autoplay loop playsinline onclick="this.paused ? this.play() : this.pause()"></video>
+        <!-- 뒤로가기 버튼 (좌측 상단) -->
+        <button onclick="closeReelViewer()" style="position: absolute; top: 15px; left: 15px; z-index: 10; background: none; border: none; color: white; font-size: 28px; cursor: pointer;">‹</button>
+        
+        <!-- 영상 (전체 화면) -->
+        <video id="reelViewerVideo" autoplay loop playsinline onclick="this.paused ? this.play() : this.pause()" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; background: #000;"></video>
+        
+        <!-- 우측 액션 버튼 (세로 배치) -->
+        <div style="position: absolute; right: 15px; bottom: 180px; display: flex; flex-direction: column; align-items: center; gap: 20px;">
+            <!-- 좋아요 -->
+            <div style="text-align: center;">
+                <button onclick="toggleReelLike()" style="background: none; border: none; cursor: pointer; padding: 0;">
+                    <span id="reelLikeBtn" style="font-size: 28px;">🤍</span>
+                </button>
+                <p id="reelLikeCount" style="color: white; font-size: 12px; margin: 5px 0 0 0;">0</p>
+            </div>
+            <!-- 댓글 -->
+            <div style="text-align: center;">
+                <button onclick="openReelComments()" style="background: none; border: none; cursor: pointer; padding: 0;">
+                    <span style="font-size: 26px;">💬</span>
+                </button>
+                <p id="reelCommentCount" style="color: white; font-size: 12px; margin: 5px 0 0 0;">0</p>
+            </div>
+            <!-- 공유 -->
+            <div style="text-align: center;">
+                <button style="background: none; border: none; cursor: pointer; padding: 0;">
+                    <span style="font-size: 26px;">📤</span>
+                </button>
+            </div>
         </div>
         
-        <!-- 하단 정보 영역 -->
-        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 120px; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 15px 20px; display: flex; flex-direction: column; justify-content: flex-end;">
-            <!-- 프로필 + 이름 -->
-            <div id="reelUserInfo" style="margin-bottom: 8px;"></div>
-            
+        <!-- 하단 정보 영역 (프로필 + 이름 + 캡션) -->
+        <div style="position: absolute; bottom: 80px; left: 15px; right: 80px;">
+            <!-- 프로필 + 이름 + 팔로우 버튼 -->
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                <div id="reelUserAvatar" style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; border: 2px solid white; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 14px;"></div>
+                <span id="reelUserName" style="color: white; font-weight: 600; font-size: 14px;"></span>
+                <button id="reelFollowBtn" onclick="toggleReelFollow()" style="padding: 6px 16px; background: transparent; border: 1px solid white; color: white; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">팔로우</button>
+            </div>
             <!-- 캡션 -->
-            <p id="reelCaption" style="color: white; font-size: 14px; margin: 0 0 10px 0; max-height: 40px; overflow: hidden;"></p>
-            
-            <!-- 액션 버튼 -->
-            <div style="display: flex; gap: 20px;">
-                <button onclick="toggleReelLike()" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px; display: flex; align-items: center; gap: 5px;">
-                    <span id="reelLikeBtn">🤍</span>
-                    <span id="reelLikeCount">0</span>
-                </button>
-                <button onclick="openReelComments()" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px; display: flex; align-items: center; gap: 5px;">
-                    💬 <span id="reelCommentCount">0</span>
-                </button>
-            </div>
+            <p id="reelCaption" style="color: white; font-size: 14px; margin: 0; line-height: 1.4; max-height: 60px; overflow: hidden; text-shadow: 0 1px 3px rgba(0,0,0,0.8);"></p>
         </div>
         
-        <!-- 이전/다음 버튼 -->
-        <button class="reel-viewer-nav" onclick="prevReel()" style="position: absolute; top: 50%; left: 10px; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 20px;">‹</button>
-        <button class="reel-viewer-nav" onclick="nextReel()" style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 20px;">›</button>
-    </div>
-
-
-    <!-- ===================== 댓글 모달 (새 디자인) ===================== -->
-    <div id="commentModal" class="modal">
-        <div class="modal-content" style="max-width: 500px; max-height: 80vh; display: flex; flex-direction: column;">
-            <div class="modal-header">
-                <h2>💬 댓글</h2>
-                <button class="close-btn" onclick="closeCommentModal()">×</button>
-            </div>
-            <div class="modal-body" style="flex: 1; overflow-y: auto;">
-                <div id="commentList">
-                    <div class="empty-state" style="padding: 40px 20px;">
-                        <div class="empty-state-icon">💬</div>
-                        <div class="empty-state-title">댓글이 없습니다</div>
-                    </div>
-                </div>
-            </div>
-            <div style="padding: 16px 24px; border-top: 1px solid #e2e8f0;">
-                <div style="display: flex; gap: 12px;">
-                    <input type="text" id="commentInput" class="input input-rounded" placeholder="댓글을 입력하세요..." 
-                        onkeypress="if(event.key === 'Enter') submitComment()">
-                    <button class="btn btn-primary-gradient" onclick="submitComment()">등록</button>
-                </div>
-            </div>
-        </div>
+        <!-- 이전/다음 터치 영역 (좌우) -->
+        <div onclick="prevReel()" style="position: absolute; top: 0; left: 0; width: 30%; height: 100%; cursor: pointer;"></div>
+        <div onclick="nextReel()" style="position: absolute; top: 0; right: 0; width: 30%; height: 100%; cursor: pointer;"></div>
     </div>
 
 
