@@ -3199,11 +3199,10 @@ body.modal-open {
     }
     
     .chat-sidebar {
-        position: fixed;
-        inset: 0;
-        z-index: 100;
+        position: relative;
         border-radius: 0;
         display: flex;
+        height: 100%;
     }
     
     .chat-sidebar.hidden {
@@ -3211,8 +3210,11 @@ body.modal-open {
     }
     
     .chat-main {
-        position: fixed;
-        inset: 0;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         z-index: 101;
         border-radius: 0;
         display: none;
