@@ -3651,7 +3651,6 @@ function cancelFeedImage() {
 }
 
 // 게시물 작성
-// 게시물 작성
 async function createPost() {
     try {
         var content = document.getElementById('newPostContent').value.trim();
@@ -3669,10 +3668,17 @@ async function createPost() {
             formData.append('images', file);
         });
         
+        // ⭐ 토큰을 authToken 변수에서 가져오기
+        var token = localStorage.getItem('authToken');
+        if (!token) {
+            alert('로그인이 필요합니다.');
+            return;
+        }
+        
         var response = await fetch(API_BASE_URL + '/feed/posts', {
             method: 'POST',
             headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
+                'Authorization': 'Bearer ' + token  // ⭐ localStorage에서 가져온 토큰 사용
             },
             body: formData
         });

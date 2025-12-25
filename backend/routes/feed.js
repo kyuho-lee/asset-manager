@@ -201,39 +201,29 @@ router.post('/posts', upload.array('images', 10), async (req, res) => {
         }
         
         // 게시물 저장
-        const [result] = await db.query(  // ← req.db를 db로!
+        const [result] = await db.query(
             'INSERT INTO posts (user_id, content, media_urls, created_at) VALUES (?, ?, ?, NOW())',
             [userId, content || '', JSON.stringify(mediaUrls)]
         );
         
         const postId = result.insertId;
         
-        // 해시태그 추출 및 저장
+        // ⭐ 해시태그 추출 및 저장 (기존 함수 사용)
         if (content) {
-            const hashtags = content.match(/#[가-힣a-zA-Z0-9_]+/g) || [];
-            for (const tag of hashtags) {
-                const tagName = tag.substring(1);
-                await db.query(  // ← req.db를 db로!
-                    'INSERT IGNORE INTO hashtags (name) VALUES (?)',
-                    [tagName]
-                );
-                const [tagResult] = await db.query(  // ← req.db를 db로!
-                    'SELECT id FROM hashtags WHERE name = ?',
-                    [tagName]
-                );
-                if (tagResult.length > 0) {
-                    await db.query(  // ← req.db를 db로!
-                        'INSERT INTO post_hashtags (post_id, hashtag_id) VALUES (?, ?)',
-                        [postId, tagResult[0].id]
-                    );
-                }
+            const hashtags = extractHashtags(content);
+            if (hashtags.length > 0) {
+                await saveHashtags(postId, hashtags);
             }
         }
         
         res.json({ success: true, postId });
     } catch (error) {
         console.error('게시물 작성 오류:', error);
-        res.status(500).json({ success: false, message: '게시물 작성에 실패했습니다.' });
+        res.status(500).json({ 
+            success: false, 
+            message: '게시물 작성에 실패했습니다.',
+            error: error.message  // ⭐ 디버깅용 에러 메시지
+        });
     }
 });
 
