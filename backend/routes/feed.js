@@ -105,7 +105,21 @@ router.get('/hashtags/:tag', async (req, res) => {
         LIMIT 50
     `, [userId, tag]);
         
-        res.json({ success: true, data: posts });
+        // media_urls JSON 파싱
+        const postsWithMedia = posts.map(post => {
+            let mediaUrls = [];
+            try {
+                mediaUrls = post.media_urls ? JSON.parse(post.media_urls) : (post.image_url ? [post.image_url] : []);
+            } catch (e) {
+                mediaUrls = post.image_url ? [post.image_url] : [];
+            }
+            return {
+                ...post,
+                media_urls: mediaUrls
+            };
+        });
+        
+        res.json({ success: true, data: postsWithMedia });
     } catch (error) {
         console.error('해시태그 검색 오류:', error);
         res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
@@ -125,6 +139,7 @@ router.get('/', async (req, res) => {
             p.id,
             p.content,
             p.image_url,
+            p.media_urls,
             p.created_at,
             p.user_id,
             u.name as user_name,
@@ -140,13 +155,27 @@ router.get('/', async (req, res) => {
         LIMIT ? OFFSET ?
     `, [userId, parseInt(limit), parseInt(offset)]);
         
+        // media_urls JSON 파싱
+        const postsWithMedia = posts.map(post => {
+            let mediaUrls = [];
+            try {
+                mediaUrls = post.media_urls ? JSON.parse(post.media_urls) : (post.image_url ? [post.image_url] : []);
+            } catch (e) {
+                mediaUrls = post.image_url ? [post.image_url] : [];
+            }
+            return {
+                ...post,
+                media_urls: mediaUrls
+            };
+        });
+        
         // 총 게시물 수
         const [countResult] = await db.query('SELECT COUNT(*) as total FROM posts');
         const total = countResult[0].total;
         
         res.json({ 
             success: true, 
-            data: posts,
+            data: postsWithMedia,
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),
@@ -161,34 +190,35 @@ router.get('/', async (req, res) => {
 });
 
 // 게시물 작성
-router.post('/', upload.single('image'), async (req, res) => {
+router.post('/posts', upload.array('images', 10), async (req, res) => {
     try {
         const { content } = req.body;
         const userId = req.user.id;
-        const imageUrl = req.file ? req.file.path : null;
         
-        if (!content && !imageUrl) {
-            return res.status(400).json({ success: false, message: '내용 또는 이미지를 입력해주세요.' });
+        // 여러 장 이미지 URL 배열 생성
+        let mediaUrls = [];
+        if (req.files && req.files.length > 0) {
+            mediaUrls = req.files.map(file => file.path); // Cloudinary URL
         }
         
-        const [result] = await db.query(`
-            INSERT INTO posts (user_id, content, image_url) VALUES (?, ?, ?)
-        `, [userId, content || '', imageUrl]);
-
+        // 게시물 저장
+        const [result] = await db.query(
+            'INSERT INTO posts (user_id, content, media_urls, created_at) VALUES (?, ?, ?, NOW())',
+            [userId, content || '', JSON.stringify(mediaUrls)]
+        );
+        
+        const postId = result.insertId;
+        
         // 해시태그 추출 및 저장
-        var hashtags = extractHashtags(content);
-        if (hashtags.length > 0) {
-            await saveHashtags(result.insertId, hashtags);
+        if (content) {
+            const hashtags = extractHashtags(content);
+            await saveHashtags(postId, hashtags);
         }
-
-        res.json({ 
-            success: true, 
-            data: { postId: result.insertId },
-            message: '게시물이 작성되었습니다.' 
-        });
+        
+        res.json({ success: true, postId });
     } catch (error) {
         console.error('게시물 작성 오류:', error);
-        res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+        res.status(500).json({ success: false, message: '게시물 작성에 실패했습니다.' });
     }
 });
 

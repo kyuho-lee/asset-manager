@@ -3526,8 +3526,54 @@ function renderPostCard(post) {
     }
     html += '</div>';
     
-    // 이미지
-    if (post.image_url) {
+    // 여러 장 이미지/영상
+    if (post.media_urls && post.media_urls.length > 0) {
+        html += '<div style="position: relative; width: 100%; max-height: 500px; overflow: hidden; background: #000;">';
+        
+        if (post.media_urls.length === 1) {
+            // 단일 이미지/영상
+            var mediaUrl = post.media_urls[0].startsWith('http') ? post.media_urls[0] : API_BASE_URL.replace('/api', '') + post.media_urls[0];
+            
+            if (post.media_urls[0].includes('.mp4') || post.media_urls[0].includes('video')) {
+                html += '<video src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain;" controls></video>';
+            } else {
+                html += '<img src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain; cursor: pointer;" onclick="openImageModal(this.src)">';
+            }
+        } else {
+            // 여러 장 슬라이드
+            html += '<div id="post-slider-' + post.id + '" class="post-media-slider" style="position: relative;">';
+            html += '<div class="slider-wrapper" style="display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;">';
+            
+            post.media_urls.forEach(function(url, index) {
+                var mediaUrl = url.startsWith('http') ? url : API_BASE_URL.replace('/api', '') + url;
+                html += '<div style="min-width: 100%; scroll-snap-align: start; display: flex; justify-content: center; align-items: center; background: #000;">';
+                
+                if (url.includes('.mp4') || url.includes('video')) {
+                    html += '<video src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain;" controls></video>';
+                } else {
+                    html += '<img src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain; cursor: pointer;" onclick="openImageModal(this.src)">';
+                }
+                
+                html += '</div>';
+            });
+            
+            html += '</div>';
+            
+            // 인디케이터
+            html += '<div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px;">1/' + post.media_urls.length + '</div>';
+            
+            // 이전/다음 버튼
+            if (post.media_urls.length > 1) {
+                html += '<button onclick="slidePostMedia(' + post.id + ', -1)" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 18px;">‹</button>';
+                html += '<button onclick="slidePostMedia(' + post.id + ', 1)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 18px;">›</button>';
+            }
+            
+            html += '</div>';
+        }
+        
+        html += '</div>';
+    } else if (post.image_url) {
+        // 기존 이미지 (하위 호환성)
         var imgSrc = post.image_url.startsWith('http') ? post.image_url : API_BASE_URL.replace('/api', '') + post.image_url;
         html += '<div style="width: 100%; max-height: 500px; overflow: hidden;">';
         html += '<img src="' + imgSrc + '" style="width: 100%; object-fit: cover; cursor: pointer;" onclick="openImageModal(this.src)">';
@@ -3605,27 +3651,28 @@ function cancelFeedImage() {
 }
 
 // 게시물 작성
+// 게시물 작성
 async function createPost() {
-    var content = document.getElementById('newPostContent').value.trim();
-    
-    if (!content && !selectedFeedImage) {
-        alert('내용 또는 이미지를 입력해주세요.');
-        return;
-    }
-    
     try {
+        var content = document.getElementById('newPostContent').value.trim();
+        
+        if (!content && selectedPostImages.length === 0) {
+            alert('내용을 입력하거나 이미지를 추가해주세요.');
+            return;
+        }
+        
         var formData = new FormData();
         formData.append('content', content);
         
-        if (selectedFeedImage) {
-            formData.append('image', selectedFeedImage);
-        }
+        // 여러 장 이미지 추가
+        selectedPostImages.forEach(function(file) {
+            formData.append('images', file);
+        });
         
-        var token = localStorage.getItem('authToken');
-        var response = await fetch(API_BASE_URL + '/feed', {
+        var response = await fetch(API_BASE_URL + '/feed/posts', {
             method: 'POST',
             headers: {
-                'Authorization': 'Bearer ' + token
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
             },
             body: formData
         });
@@ -3635,12 +3682,16 @@ async function createPost() {
         if (result.success) {
             // 입력 초기화
             document.getElementById('newPostContent').value = '';
-            cancelFeedImage();
+            document.getElementById('postImageInput').value = '';
+            selectedPostImages = [];
+            displayPostImagePreviews();
             
             // 피드 새로고침
             await loadFeed();
+            
+            alert('게시물이 작성되었습니다! 🎉');
         } else {
-            alert('게시물 작성 실패: ' + result.message);
+            alert('게시물 작성 실패: ' + (result.message || '알 수 없는 오류'));
         }
     } catch (error) {
         console.error('게시물 작성 오류:', error);
@@ -5649,3 +5700,69 @@ async function loadFeedUserAvatar() {
     }
 }
 
+// ========== 여러 장 이미지 업로드 ==========
+
+var selectedPostImages = [];
+
+// 이미지 선택 핸들러
+function handlePostImages(input) {
+    var files = Array.from(input.files);
+    
+    if (files.length > 10) {
+        alert('최대 10장까지 업로드 가능합니다.');
+        return;
+    }
+    
+    selectedPostImages = files;
+    displayPostImagePreviews();
+}
+
+// 이미지 미리보기 표시
+function displayPostImagePreviews() {
+    var previewContainer = document.getElementById('postImagePreview');
+    var imageList = document.getElementById('postImageList');
+    
+    if (selectedPostImages.length === 0) {
+        previewContainer.style.display = 'none';
+        return;
+    }
+    
+    previewContainer.style.display = 'block';
+    imageList.innerHTML = '';
+    
+    selectedPostImages.forEach(function(file, index) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var wrapper = document.createElement('div');
+            wrapper.style.cssText = 'position: relative; width: 100px; height: 100px; border-radius: 8px; overflow: hidden; border: 2px solid #e0e0e0;';
+            
+            var isVideo = file.type.startsWith('video/');
+            var mediaElement;
+            
+            if (isVideo) {
+                mediaElement = document.createElement('video');
+                mediaElement.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                mediaElement.src = e.target.result;
+            } else {
+                mediaElement = document.createElement('img');
+                mediaElement.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                mediaElement.src = e.target.result;
+            }
+            
+            var removeBtn = document.createElement('button');
+            removeBtn.textContent = '×';
+            removeBtn.style.cssText = 'position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 18px; line-height: 1;';
+            removeBtn.onclick = function() {
+                selectedPostImages.splice(index, 1);
+                displayPostImagePreviews();
+            };
+            
+            wrapper.appendChild(mediaElement);
+            wrapper.appendChild(removeBtn);
+            imageList.appendChild(wrapper);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+console.log('✅ 여러 장 이미지 업로드 기능 로드 완료');

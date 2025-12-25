@@ -553,22 +553,17 @@ button[onclick*="downloadExcel"]:hover {
                     <div class="feed-composer-content">
                         <textarea id="newPostContent" class="feed-composer-textarea" placeholder="무슨 생각을 하고 계신가요?"></textarea>
                         
-                        <!-- 이미지 미리보기 -->
-                        <div id="feedImagePreview" style="display: none; margin-top: 12px;">
-                            <div style="position: relative; display: inline-block;">
-                                <img id="feedPreviewImg" src="" style="max-width: 200px; max-height: 200px; border-radius: 10px;">
-                                <button onclick="cancelFeedImage()" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 14px;">✕</button>
-                            </div>
+                        <!-- 이미지 미리보기 영역 (여러 장) -->
+                        <div id="postImagePreview" style="display: none; margin-top: 12px;">
+                            <div id="postImageList" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;"></div>
                         </div>
                         
                         <div class="feed-composer-actions">
-                            <div class="feed-composer-tools">
-                                <label class="btn btn-ghost btn-sm">
-                                    <input type="file" id="feedImageInput" accept="image/*" onchange="previewFeedImage(event)" style="display: none;">
-                                    📷 사진 추가
-                                </label>
-                            </div>
-                            <button class="btn btn-primary-gradient" onclick="createPost()">게시하기</button>
+                            <label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+                                📷 사진/영상
+                                <input type="file" id="postImageInput" accept="image/*,video/*" multiple style="display: none;" onchange="handlePostImages(this)">
+                            </label>
+                            <button class="btn btn-primary btn-sm" onclick="createPost()">게시</button>
                         </div>
                     </div>
                 </div>
