@@ -189,20 +189,19 @@ router.get('/', async (req, res) => {
     }
 });
 
-// 게시물 작성
 router.post('/posts', upload.array('images', 10), async (req, res) => {
     try {
         const { content } = req.body;
-        const userId = req.user.id;  // ← 이건 맞는데...
+        const userId = req.user.id;
         
         // 여러 장 이미지 URL 배열 생성
         let mediaUrls = [];
         if (req.files && req.files.length > 0) {
-            mediaUrls = req.files.map(file => file.path); // Cloudinary URL
+            mediaUrls = req.files.map(file => file.path);
         }
         
         // 게시물 저장
-        const [result] = await db.query(  // ← req.db가 아니라 db!
+        const [result] = await db.query(  // ← req.db를 db로!
             'INSERT INTO posts (user_id, content, media_urls, created_at) VALUES (?, ?, ?, NOW())',
             [userId, content || '', JSON.stringify(mediaUrls)]
         );
@@ -211,8 +210,24 @@ router.post('/posts', upload.array('images', 10), async (req, res) => {
         
         // 해시태그 추출 및 저장
         if (content) {
-            const hashtags = extractHashtags(content);
-            await saveHashtags(postId, hashtags);
+            const hashtags = content.match(/#[가-힣a-zA-Z0-9_]+/g) || [];
+            for (const tag of hashtags) {
+                const tagName = tag.substring(1);
+                await db.query(  // ← req.db를 db로!
+                    'INSERT IGNORE INTO hashtags (name) VALUES (?)',
+                    [tagName]
+                );
+                const [tagResult] = await db.query(  // ← req.db를 db로!
+                    'SELECT id FROM hashtags WHERE name = ?',
+                    [tagName]
+                );
+                if (tagResult.length > 0) {
+                    await db.query(  // ← req.db를 db로!
+                        'INSERT INTO post_hashtags (post_id, hashtag_id) VALUES (?, ?)',
+                        [postId, tagResult[0].id]
+                    );
+                }
+            }
         }
         
         res.json({ success: true, postId });
