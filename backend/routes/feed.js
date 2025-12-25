@@ -193,7 +193,7 @@ router.get('/', async (req, res) => {
 router.post('/posts', upload.array('images', 10), async (req, res) => {
     try {
         const { content } = req.body;
-        const userId = req.user.id;
+        const userId = req.user.id;  // ← 이건 맞는데...
         
         // 여러 장 이미지 URL 배열 생성
         let mediaUrls = [];
@@ -202,7 +202,7 @@ router.post('/posts', upload.array('images', 10), async (req, res) => {
         }
         
         // 게시물 저장
-        const [result] = await db.query(
+        const [result] = await db.query(  // ← req.db가 아니라 db!
             'INSERT INTO posts (user_id, content, media_urls, created_at) VALUES (?, ?, ?, NOW())',
             [userId, content || '', JSON.stringify(mediaUrls)]
         );
