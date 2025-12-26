@@ -5308,16 +5308,7 @@ var reelSwipeStartY = 0;
 var reelSwiping = false;
 
 
-// 다음 릴스
-function nextReel() {
-    nextReelSmooth();
-}
 
-
-// 이전 릴스
-function prevReel() {
-    prevReelSmooth();
-}
 
 function prevReel() {
     var reel = reelsList[currentReelIndex];
