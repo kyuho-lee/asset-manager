@@ -3748,7 +3748,10 @@ async function loadComments(postId) {
             html += '</div>';
             
             if (isMyComment) {
-                html += '<button onclick="deleteComment(' + comment.id + ')" style="background: none; border: none; color: #999; cursor: pointer; font-size: 14px;">🗑️</button>';
+                html += '<div style="display: flex; gap: 8px;">';
+                html += '<button onclick="editComment(' + comment.id + ', \'' + comment.content.replace(/'/g, "\\'").replace(/\n/g, '\\n') + '\')" style="background: none; border: none; color: #0066cc; cursor: pointer; font-size: 14px;" title="수정">✏️</button>';
+                html += '<button onclick="deleteComment(' + comment.id + ')" style="background: none; border: none; color: #999; cursor: pointer; font-size: 14px;" title="삭제">🗑️</button>';
+                html += '</div>';
             }
             html += '</div>';
             // 대댓글 렌더링
@@ -3773,7 +3776,10 @@ async function loadComments(postId) {
                     html += '</div>';
                     
                     if (isMyReply) {
-                        html += '<button onclick="deleteComment(' + reply.id + ')" style="background: none; border: none; color: #999; cursor: pointer; font-size: 12px;">🗑️</button>';
+                        html += '<div style="display: flex; gap: 6px;">';
+                        html += '<button onclick="editComment(' + reply.id + ', \'' + reply.content.replace(/'/g, "\\'").replace(/\n/g, '\\n') + '\')" style="background: none; border: none; color: #0066cc; cursor: pointer; font-size: 12px;" title="수정">✏️</button>';
+                        html += '<button onclick="deleteComment(' + reply.id + ')" style="background: none; border: none; color: #999; cursor: pointer; font-size: 12px;" title="삭제">🗑️</button>';
+                        html += '</div>';
                     }
                     html += '</div>';
                     html += '</div>';
@@ -5987,4 +5993,105 @@ function handleMentionInput(event) {
     }
     
     removeMentionDropdown();
+}
+
+
+// ============ 댓글 수정 기능 ============
+
+var currentEditCommentId = null;
+
+// 댓글 수정 모드
+function editComment(commentId, currentContent) {
+    // 기존 수정 취소
+    cancelEditComment();
+    
+    currentEditCommentId = commentId;
+    
+    // 댓글 내용 요소 찾기 (더 정확한 선택)
+    var allComments = document.querySelectorAll('#commentList p');
+    var targetP = null;
+    
+    for (var i = 0; i < allComments.length; i++) {
+        if (allComments[i].textContent.trim() === currentContent.trim()) {
+            targetP = allComments[i];
+            break;
+        }
+    }
+    
+    if (!targetP) return;
+    
+    // 수정 폼 생성
+    var editForm = document.createElement('div');
+    editForm.id = 'editForm_' + commentId;
+    editForm.innerHTML = 
+        '<div style="display: flex; gap: 8px; margin-top: 8px;">' +
+        '<input type="text" id="editInput_' + commentId + '" value="' + currentContent.replace(/"/g, '&quot;') + '" ' +
+        '       style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;" ' +
+        '       oninput="handleMentionInput(event)" ' +
+        '       onkeypress="if(event.key === \'Enter\') saveEditComment(' + commentId + ')">' +
+        '<button onclick="saveEditComment(' + commentId + ')" ' +
+        '        style="padding: 8px 16px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap;">' +
+        '    저장' +
+        '</button>' +
+        '<button onclick="cancelEditComment()" ' +
+        '        style="padding: 8px 12px; background: #e5e7eb; color: #666; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">' +
+        '    취소' +
+        '</button>' +
+        '</div>';
+    
+    // 기존 내용 숨기고 수정 폼 추가
+    targetP.style.display = 'none';
+    targetP.parentNode.appendChild(editForm);
+    
+    // 입력창 포커스
+    setTimeout(function() {
+        var input = document.getElementById('editInput_' + commentId);
+        if (input) {
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+        }
+    }, 100);
+}
+
+// 댓글 수정 저장
+async function saveEditComment(commentId) {
+    var input = document.getElementById('editInput_' + commentId);
+    if (!input) return;
+    
+    var content = input.value.trim();
+    
+    if (!content) {
+        alert('댓글 내용을 입력해주세요.');
+        return;
+    }
+    
+    try {
+        var response = await apiRequest('/comments/' + commentId, {
+            method: 'PUT',
+            body: JSON.stringify({ content: content })
+        });
+        
+        if (response.success) {
+            cancelEditComment();
+            await loadComments(currentCommentPostId);
+        } else {
+            alert('수정 실패: ' + response.message);
+        }
+    } catch (error) {
+        console.error('댓글 수정 오류:', error);
+        alert('댓글 수정 중 오류가 발생했습니다.');
+    }
+}
+
+// 댓글 수정 취소
+function cancelEditComment() {
+    if (!currentEditCommentId) return;
+    
+    var editForm = document.getElementById('editForm_' + currentEditCommentId);
+    if (editForm && editForm.previousSibling) {
+        editForm.previousSibling.style.display = '';
+        editForm.remove();
+    }
+    
+    currentEditCommentId = null;
 }

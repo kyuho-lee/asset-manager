@@ -139,6 +139,41 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 });
 
+// 댓글 수정
+router.put('/:id', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const commentId = parseInt(req.params.id);
+        const { content } = req.body;
+        
+        if (!content || !content.trim()) {
+            return res.status(400).json({ success: false, message: '댓글 내용을 입력해주세요.' });
+        }
+        
+        // 댓글 존재 및 권한 확인
+        const [comments] = await db.query('SELECT * FROM comments WHERE id = ?', [commentId]);
+        
+        if (comments.length === 0) {
+            return res.status(404).json({ success: false, message: '댓글을 찾을 수 없습니다.' });
+        }
+        
+        if (comments[0].user_id !== userId) {
+            return res.status(403).json({ success: false, message: '수정 권한이 없습니다.' });
+        }
+        
+        // 댓글 수정
+        await db.query(
+            'UPDATE comments SET content = ? WHERE id = ?',
+            [content.trim(), commentId]
+        );
+        
+        res.json({ success: true, message: '댓글이 수정되었습니다.' });
+    } catch (error) {
+        console.error('댓글 수정 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    }
+});
+
 // 댓글 삭제
 router.delete('/:id', authenticateToken, async (req, res) => {
     try {
