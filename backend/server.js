@@ -39,6 +39,7 @@ const followsRoutes = require('./routes/follows');
 const storiesRoutes = require('./routes/stories');
 const reelsRoutes = require('./routes/reels');
 const profilesRouter = require('./routes/profiles');
+const commentRoutes = require('./routes/comments');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/assets', assetsRoutes);
@@ -51,6 +52,7 @@ app.use('/api/follows', followsRoutes);
 app.use('/api/stories', storiesRoutes);
 app.use('/api/reels', reelsRoutes);
 app.use('/api/profiles', profilesRouter);
+app.use('/api/comments', commentRoutes);
 
 // ========== 기본 라우트 ==========
 
