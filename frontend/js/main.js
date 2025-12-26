@@ -3184,6 +3184,44 @@ async function sendMessage() {
     }
 }
 
+// ========== 채팅 읽음 처리 함수 추가 ==========
+
+async function markAsRead(roomId) {
+    try {
+        await apiRequest('/chat/rooms/' + roomId + '/read', {
+            method: 'POST'
+        });
+    } catch (error) {
+        console.error('읽음 처리 오류:', error);
+    }
+}
+
+function showTypingIndicator(roomId, userId, userName) {
+    if (currentChatRoom !== roomId) return;
+    
+    var indicator = document.getElementById('typingIndicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'typingIndicator';
+        indicator.style.cssText = 'padding: 10px; color: #666; font-size: 13px; font-style: italic;';
+        
+        var inputArea = document.getElementById('chatInputArea');
+        if (inputArea && inputArea.parentNode) {
+            inputArea.parentNode.insertBefore(indicator, inputArea);
+        }
+    }
+    
+    indicator.textContent = userName + '님이 입력 중...';
+    indicator.style.display = 'block';
+}
+
+function hideTypingIndicator(roomId, userId) {
+    var indicator = document.getElementById('typingIndicator');
+    if (indicator) {
+        indicator.style.display = 'none';
+    }
+}
+
 // 새 채팅 모달 열기
 async function openNewChatModal() {
     document.getElementById('newChatModal').classList.add('active');
