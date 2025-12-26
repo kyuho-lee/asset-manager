@@ -110,11 +110,15 @@ router.post('/', upload.array('media', 10), async (req, res) => {
             return res.status(400).json({ success: false, message: '미디어 파일은 필수입니다.' });
         }
         
-        // 썸네일 (첫 번째 미디어)
+        // 썸네일 생성
         let thumbnailUrl = mediaUrls[0].url;
         if (mediaUrls[0].type === 'video') {
-            // Cloudinary 비디오 썸네일
-            thumbnailUrl = mediaUrls[0].url.replace('/upload/', '/upload/so_0/');
+            // Cloudinary 비디오 썸네일 (첫 프레임)
+            thumbnailUrl = mediaUrls[0].url
+                .replace('/video/upload/', '/video/upload/so_0,w_400,h_711,c_fill/')
+                .replace('.mp4', '.jpg')
+                .replace('.mov', '.jpg')
+                .replace('.avi', '.jpg');
         }
         
         // 릴스 저장

@@ -4793,15 +4793,33 @@ async function loadReels() {
         var html = '';
         for (var i = 0; i < reelsList.length; i++) {
             var reel = reelsList[i];
-            var thumbnailUrl = reel.thumbnail_url || reel.video_url;
-            var isVideo = reel.media_type === 'video' || (!reel.media_type && reel.video_url);
+            // media_urls 파싱
+            var mediaUrls = [];
+            if (reel.media_urls) {
+                try {
+                    mediaUrls = typeof reel.media_urls === 'string' ? JSON.parse(reel.media_urls) : reel.media_urls;
+                } catch (e) {
+                    mediaUrls = [];
+                }
+            }
+
+            // 하위 호환성
+            if (mediaUrls.length === 0 && reel.video_url) {
+                mediaUrls = [{ type: 'video', url: reel.video_url }];
+            }
+
+            var firstMedia = mediaUrls[0] || {};
+            var thumbnailUrl = reel.thumbnail_url || firstMedia.url;
+            var isVideo = firstMedia.type === 'video';
             var isMulti = reel.media_type === 'multi';
             
             html += '<div onclick="openReelViewer(' + i + ')" style="aspect-ratio: 9/16; background: #000; border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">';
             
-            if (isVideo) {
-                html += '<video src="' + reel.video_url + '" style="width: 100%; height: 100%; object-fit: cover;" muted></video>';
-            } else {
+           if (isVideo && thumbnailUrl) {
+                // 비디오 섬네일 이미지 사용
+                html += '<img src="' + thumbnailUrl + '" style="width: 100%; height: 100%; object-fit: cover;">';
+                html += '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; color: white; opacity: 0.8;">▶</div>';
+            } else if (thumbnailUrl) {
                 html += '<img src="' + thumbnailUrl + '" style="width: 100%; height: 100%; object-fit: cover;">';
             }
             
