@@ -4244,6 +4244,15 @@ function connectSocket() {
         updateReelLikeUI(data.reelId, data.likeCount, data.liked, data.userId);
     });
 
+    // 타이핑 중 이벤트
+    socket.on('typing', (data) => {
+        socket.broadcast.emit('userTyping', data);
+    });
+
+    socket.on('stopTyping', (data) => {
+        socket.broadcast.emit('userStopTyping', data);
+    });
+
     socket.on('disconnect', function() {
         console.log('❌ Socket 연결 해제');
     });
@@ -4302,6 +4311,22 @@ function connectSocket() {
         if (feedPage && feedPage.classList.contains('active')) {
             loadStories();
         }
+    });
+
+    socket.on('newChatMessage', function(data) {
+        if (currentChatRoom && currentChatRoom === data.roomId) {
+            loadMessages(data.roomId);
+            markAsRead(data.roomId);
+        }
+        loadChatRooms();
+    });
+
+    socket.on('userTyping', function(data) {
+        showTypingIndicator(data.roomId, data.userId, data.userName);
+    });
+
+    socket.on('userStopTyping', function(data) {
+        hideTypingIndicator(data.roomId, data.userId);
     });
 
 }

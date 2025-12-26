@@ -297,6 +297,18 @@ router.post('/rooms/:roomId/messages', async (req, res) => {
             }
         }
         
+    // ⭐ Socket.IO 실시간 메시지 브로드캐스트
+    for (let p of otherParticipants) {
+        const socketId = connectedUsers.get(p.user_id);
+        if (socketId) {
+            io.to(socketId).emit('newChatMessage', {
+                roomId: parseInt(roomId),
+                message: newMessage[0]
+            });
+            io.to(socketId).emit('updateChatRooms');
+        }
+    }
+
         res.json({ success: true, data: newMessage[0], message: '메시지가 전송되었습니다.' });
     } catch (error) {
         console.error('메시지 전송 오류:', error);
@@ -341,5 +353,40 @@ router.post('/upload', upload.single('image'), (req, res) => {
     }
 });
 
+
+// 메시지 읽음 처리
+router.post('/rooms/:roomId/read', async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { roomId } = req.params;
+        
+        await db.query(`
+            UPDATE chat_participants SET last_read_at = NOW() 
+            WHERE room_id = ? AND user_id = ?
+        `, [roomId, userId]);
+        
+        const [otherParticipants] = await db.query(`
+            SELECT user_id FROM chat_participants WHERE room_id = ? AND user_id != ?
+        `, [roomId, userId]);
+        
+        const io = req.app.get('io');
+        const connectedUsers = req.app.get('connectedUsers');
+        
+        for (let p of otherParticipants) {
+            const socketId = connectedUsers.get(p.user_id);
+            if (socketId) {
+                io.to(socketId).emit('messageRead', {
+                    roomId: parseInt(roomId),
+                    userId: userId
+                });
+            }
+        }
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('읽음 처리 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류' });
+    }
+});
 
 module.exports = router;
