@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
-const auth = require('../middleware/auth');
+const db = require('../config/db');
+const { authenticateToken } = require('../middleware/auth');
 
 // 댓글 목록 조회 (대댓글 포함)
-router.get('/:postId', auth, async (req, res) => {
+router.get('/:postId', authenticateToken, async (req, res) => {
     try {
         const postId = parseInt(req.params.postId);
         const userId = req.user.id;
@@ -47,7 +47,7 @@ router.get('/:postId', auth, async (req, res) => {
 });
 
 // 댓글 작성 (대댓글 포함)
-router.post('/', auth, async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         const { post_id, content, parent_comment_id } = req.body;
@@ -89,7 +89,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 // 댓글 삭제
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         const commentId = parseInt(req.params.id);
@@ -119,7 +119,7 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 // 댓글 좋아요
-router.post('/:id/like', auth, async (req, res) => {
+router.post('/:id/like', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         const commentId = parseInt(req.params.id);
