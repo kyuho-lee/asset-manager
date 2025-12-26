@@ -5094,13 +5094,122 @@ async function uploadReel() {
 
 // ========== 릴스 뷰어 ==========
 
+// openReelViewer 함수 수정
 function openReelViewer(index) {
     currentReelIndex = index;
     currentReelMediaIndex = 0;
-    document.getElementById('reelViewerModal').style.display = 'block';
-    showCurrentReel();
+    
+    var modal = document.getElementById('reelViewerModal');
+    if (!modal) {
+        console.error('❌ reelViewerModal을 찾을 수 없습니다');
+        return;
+    }
+    
+    modal.style.display = 'block';
+    renderReelScrollView();
 }
 
+// renderReelScrollView 함수 (새로 추가)
+function renderReelScrollView() {
+    var container = document.getElementById('reelScrollContainer');
+    if (!container) {
+        console.error('❌ reelScrollContainer를 찾을 수 없습니다');
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    // 현재 릴스만 렌더링 (스크롤 방식 대신 단일 뷰)
+    var reel = reelsList[currentReelIndex];
+    if (!reel) return;
+    
+    var reelItem = document.createElement('div');
+    reelItem.style.cssText = 'width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; position: relative;';
+    
+    // 미디어 렌더링
+    var media = reel.media || [{ media_type: reel.media_type || 'video', media_url: reel.video_url }];
+    var current = media[currentReelMediaIndex];
+    
+    if (current.media_type === 'video') {
+        reelItem.innerHTML = '<video src="' + current.media_url + '" autoplay loop playsinline onclick="this.paused ? this.play() : this.pause()" style="max-width: 100%; max-height: 100%; object-fit: contain;"></video>';
+    } else {
+        reelItem.innerHTML = '<img src="' + current.media_url + '" style="max-width: 100%; max-height: 100%; object-fit: contain;">';
+    }
+    
+    // 하단 정보
+    var infoHtml = '<div style="position: absolute; bottom: 100px; left: 15px; right: 80px; color: white; z-index: 15;">';
+    infoHtml += '<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">';
+    infoHtml += '<div style="width: 35px; height: 35px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">';
+    if (reel.user_profile_image) {
+        infoHtml += '<img src="' + reel.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">';
+    } else {
+        infoHtml += reel.user_name.charAt(0).toUpperCase();
+    }
+    infoHtml += '</div>';
+    infoHtml += '<span style="font-weight: 600;">' + reel.user_name + '</span>';
+    infoHtml += '</div>';
+    if (reel.caption) {
+        infoHtml += '<p style="margin: 0; line-height: 1.4;">' + reel.caption + '</p>';
+    }
+    infoHtml += '</div>';
+    
+    reelItem.innerHTML += infoHtml;
+    
+    // 다중 미디어 인디케이터
+    if (media.length > 1) {
+        var indicator = '<div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 15;">';
+        for (var i = 0; i < media.length; i++) {
+            indicator += '<div onclick="goToReelMedia(' + i + ')" style="width: 8px; height: 8px; border-radius: 50%; background: ' + (i === currentReelMediaIndex ? 'white' : 'rgba(255,255,255,0.4)') + '; cursor: pointer;"></div>';
+        }
+        indicator += '</div>';
+        reelItem.innerHTML += indicator;
+    }
+    
+    container.appendChild(reelItem);
+    
+    // 좋아요/댓글 수 업데이트
+    updateReelStats(reel);
+    
+    // 팔로우 버튼
+    var followBtn = document.getElementById('reelFollowBtn');
+    var deleteBtn = document.getElementById('reelDeleteBtn');
+    
+    if (currentUser && reel.user_id === currentUser.id) {
+        if (followBtn) followBtn.style.display = 'none';
+        if (deleteBtn) deleteBtn.style.display = 'flex';
+    } else {
+        if (followBtn) {
+            followBtn.style.display = 'flex';
+            checkReelFollowStatus(reel.user_id);
+        }
+        if (deleteBtn) deleteBtn.style.display = 'none';
+    }
+}
+
+// updateReelStats 함수 (새로 추가)
+function updateReelStats(reel) {
+    var likeBtn = document.getElementById('reelLikeBtnFixed');
+    var likeCount = document.getElementById('reelLikeCountFixed');
+    var commentCount = document.getElementById('reelCommentCountFixed');
+    
+    if (likeBtn) {
+        var icon = likeBtn.querySelector('span');
+        if (icon) {
+            icon.textContent = reel.is_liked ? '❤️' : '🤍';
+        }
+    }
+    
+    if (likeCount) {
+        likeCount.textContent = reel.like_count || 0;
+    }
+    
+    if (commentCount) {
+        commentCount.textContent = reel.comment_count || 0;
+    }
+}
+
+
+// showCurrentReel 함수 수정
 async function showCurrentReel() {
     if (currentReelIndex < 0 || currentReelIndex >= reelsList.length) {
         closeReelViewer();
@@ -5113,51 +5222,10 @@ async function showCurrentReel() {
     // 조회수 증가
     await apiRequest('/reels/' + reel.id + '/view', { method: 'POST' });
     
-    // 미디어 표시
-    renderReelViewerMedia(reel);
-    
-    // 프로필 아바타
-    var avatarEl = document.getElementById('reelUserAvatar');
-    if (reel.user_profile_image) {
-        avatarEl.innerHTML = '<img src="' + reel.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">';
-    } else {
-        avatarEl.innerHTML = '';
-        avatarEl.textContent = reel.user_name.charAt(0).toUpperCase();
-    }
-    
-    // 이름
-    document.getElementById('reelUserName').textContent = reel.user_name;
-    
-    // 캡션
-    document.getElementById('reelCaption').textContent = reel.caption || '';
-    
-    // 좋아요
-    document.getElementById('reelLikeCount').textContent = reel.like_count || 0;
-    document.getElementById('reelLikeBtn').textContent = reel.is_liked ? '❤️' : '🤍';
-    
-    // 댓글
-    document.getElementById('reelCommentCount').textContent = reel.comment_count || 0;
-    
-    // 팔로우 버튼
-    var followBtn = document.getElementById('reelFollowBtn');
-    if (currentUser && reel.user_id === currentUser.id) {
-        followBtn.style.display = 'none';
-    } else {
-        followBtn.style.display = 'inline-block';
-        checkReelFollowStatus(reel.user_id);
-    }
-
-    // 삭제 버튼 (본인 릴스일 때만 표시)
-    var deleteBtn = document.getElementById('reelDeleteBtn');
-    if (currentUser && reel.user_id === currentUser.id) {
-        deleteBtn.style.display = 'flex';
-    } else {
-        deleteBtn.style.display = 'none';
-    }
-
-    // 메뉴 닫기
-    document.getElementById('reelMoreMenu').style.display = 'none';
+    // 화면 렌더링
+    renderReelScrollView();
 }
+
 
 // 릴스 삭제
 async function deleteReel() {
@@ -5199,49 +5267,6 @@ document.getElementById('reelViewerModal').addEventListener('click', function(e)
         document.getElementById('reelMoreMenu').style.display = 'none';
     }
 });
-
-// 릴스 미디어 렌더링
-function renderReelViewerMedia(reel) {
-    var wrapper = document.querySelector('.reel-video-wrapper');
-    
-    // ⭐ null 체크 추가
-    if (!wrapper) {
-        console.error('❌ .reel-video-wrapper 요소를 찾을 수 없습니다.');
-        return; // 함수 종료
-    }
-    
-    var media = reel.media || [{ media_type: reel.media_type || 'video', media_url: reel.video_url }];
-    var current = media[currentReelMediaIndex];
-    
-    var mediaHtml = '';
-    
-    // 미디어 표시
-    if (current.media_type === 'video') {
-        mediaHtml += '<video src="' + current.media_url + '" autoplay loop playsinline onclick="this.paused ? this.play() : this.pause()" style="max-width: 100%; max-height: 100%; object-fit: contain;"></video>';
-    } else {
-        mediaHtml += '<img src="' + current.media_url + '" style="max-width: 100%; max-height: 100%; object-fit: contain; user-select: none;" draggable="false">';
-    }
-    
-    // 다중 미디어일 때 - 인디케이터 (아래쪽)
-    if (media.length > 1) {
-        mediaHtml += '<div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 15;">';
-        for (var i = 0; i < media.length; i++) {
-            var isActive = i === currentReelMediaIndex;
-            mediaHtml += '<div onclick="goToReelMedia(' + i + ')" style="width: 8px; height: 8px; border-radius: 50%; background: ' + (isActive ? 'white' : 'rgba(255,255,255,0.4)') + '; cursor: pointer; transition: all 0.3s;"></div>';
-        }
-        mediaHtml += '</div>';
-        
-        // 카운터 (우측 상단)
-        mediaHtml += '<div style="position: absolute; top: 15px; right: 50px; background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; z-index: 15;">' + (currentReelMediaIndex + 1) + '/' + media.length + '</div>';
-    }
-    
-    wrapper.innerHTML = mediaHtml;
-    
-    // 다중 미디어면 스와이프 이벤트 추가
-    if (media.length > 1) {
-        initReelSwipe(wrapper, reel);
-    }
-}
 
 // 릴스 더보기 메뉴 토글
 function toggleReelMenu() {
@@ -5447,49 +5472,83 @@ async function toggleReelFollow() {
     }
 }
 
-// 릴스 좋아요 토글
+// toggleReelLike 함수 수정
 async function toggleReelLike() {
     var reel = reelsList[currentReelIndex];
+    if (!reel) return;
     
     try {
         var response = await apiRequest('/reels/' + reel.id + '/like', { method: 'POST' });
         
         if (response.success) {
-            if (response.liked) {
-                reel.is_liked = 1;
-                reel.like_count = (reel.like_count || 0) + 1;
-                document.getElementById('reelLikeBtn').textContent = '❤️';
-            } else {
-                reel.is_liked = 0;
-                reel.like_count = Math.max(0, (reel.like_count || 0) - 1);
-                document.getElementById('reelLikeBtn').textContent = '🤍';
+            var newLikeCount = response.likeCount || 0;
+            var isLiked = response.liked;
+            
+            // 로컬 데이터 업데이트
+            reel.is_liked = isLiked ? 1 : 0;
+            reel.like_count = newLikeCount;
+            
+            // UI 업데이트
+            var likeBtn = document.getElementById('reelLikeBtnFixed');
+            var likeCount = document.getElementById('reelLikeCountFixed');
+            
+            if (likeBtn) {
+                var icon = likeBtn.querySelector('span');
+                if (icon) {
+                    icon.textContent = isLiked ? '❤️' : '🤍';
+                    icon.style.transform = 'scale(1.3)';
+                    setTimeout(function() {
+                        icon.style.transform = 'scale(1)';
+                    }, 200);
+                }
             }
-            document.getElementById('reelLikeCount').textContent = reel.like_count;
+            
+            if (likeCount) {
+                likeCount.textContent = newLikeCount;
+            }
         }
     } catch (error) {
         console.error('릴스 좋아요 오류:', error);
     }
 }
 
+// updateReelLikeUI 함수 수정
 function updateReelLikeUI(reelId, likeCount, liked, likedUserId) {
-    var likeCountEl = document.getElementById('reelLikeCount');
+    // 현재 보고 있는 릴스인지 확인
+    var currentReel = reelsList[currentReelIndex];
+    if (!currentReel || currentReel.id !== reelId) return;
+    
+    // 좋아요 개수 업데이트 (모든 사용자)
+    var likeCountEl = document.getElementById('reelLikeCountFixed');
     if (likeCountEl) {
         likeCountEl.textContent = likeCount || 0;
     }
     
-    if (currentUser && likedUserId === currentUser.id && 
-        reelsList[currentReelIndex] && reelsList[currentReelIndex].id === reelId) {
-        
-        var likeBtn = document.getElementById('reelLikeBtn');
+    // 현재 사용자가 좋아요를 누른 경우에만 하트 아이콘 변경
+    if (currentUser && likedUserId === currentUser.id) {
+        var likeBtn = document.getElementById('reelLikeBtnFixed');
         if (likeBtn) {
-            likeBtn.textContent = liked ? '❤️' : '🤍';
-            likeBtn.style.transform = 'scale(1.3)';
-            setTimeout(function() {
-                likeBtn.style.transform = 'scale(1)';
-            }, 200);
+            var icon = likeBtn.querySelector('span');
+            if (icon) {
+                icon.textContent = liked ? '❤️' : '🤍';
+                icon.style.transform = 'scale(1.3)';
+                setTimeout(function() {
+                    icon.style.transform = 'scale(1)';
+                }, 200);
+            }
+        }
+    }
+    
+    // 로컬 데이터도 업데이트
+    if (currentReel) {
+        currentReel.like_count = likeCount;
+        if (currentUser && likedUserId === currentUser.id) {
+            currentReel.is_liked = liked ? 1 : 0;
         }
     }
 }
+
+console.log('✅ 릴스 뷰어 함수 수정 완료');
 
 function nextReel() {
     if (currentReelIndex < reelsList.length - 1) {
