@@ -2,6 +2,35 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
+const multer = require('multer');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
+
+// Cloudinary 설정
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Cloudinary 스토리지 설정 (이미지 + 영상)
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+        const isVideo = file.mimetype.startsWith('video/');
+        return {
+            folder: 'reels',
+            resource_type: isVideo ? 'video' : 'image',
+            allowed_formats: isVideo ? ['mp4', 'mov', 'avi'] : ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+            transformation: isVideo ? [] : [{ width: 1080, height: 1920, crop: 'limit' }]
+        };
+    }
+});
+
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 100 * 1024 * 1024 } // 100MB
+});
 
 router.use(authenticateToken);
 
@@ -10,7 +39,7 @@ router.get('/', async (req, res) => {
     try {
         const userId = req.user.id;
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit) || 20;
         const offset = (page - 1) * limit;
         
         const [reels] = await db.query(`
@@ -28,74 +57,73 @@ router.get('/', async (req, res) => {
             LIMIT ? OFFSET ?
         `, [userId, limit, offset]);
         
-        // 각 릴스의 미디어 가져오기
-        for (let reel of reels) {
-            if (reel.media_type === 'multi') {
-                const [media] = await db.query(
-                    'SELECT * FROM reel_media WHERE reel_id = ? ORDER BY sort_order',
-                    [reel.id]
-                );
-                reel.media = media;
-            } else {
-                // 단일 미디어 (기존 호환)
-                reel.media = [{
-                    media_type: reel.media_type || 'video',
-                    media_url: reel.video_url
-                }];
+        // 각 릴스의 미디어 파싱
+        const reelsWithMedia = reels.map(reel => {
+            let mediaUrls = [];
+            
+            if (reel.media_urls) {
+                try {
+                    if (typeof reel.media_urls === 'string') {
+                        mediaUrls = JSON.parse(reel.media_urls);
+                    } else {
+                        mediaUrls = reel.media_urls;
+                    }
+                } catch (e) {
+                    console.error('media_urls 파싱 오류:', e);
+                    mediaUrls = [];
+                }
             }
-        }
+            
+            // 하위 호환성
+            if (mediaUrls.length === 0 && reel.video_url) {
+                mediaUrls = [{ type: 'video', url: reel.video_url }];
+            }
+            
+            return {
+                ...reel,
+                media_urls: mediaUrls
+            };
+        });
         
-        res.json({ success: true, data: reels });
+        res.json({ success: true, data: reelsWithMedia });
     } catch (error) {
         console.error('릴스 목록 조회 오류:', error);
         res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
     }
 });
 
-// 릴스 업로드 (이미지/영상 자동 감지, 다중 파일 지원)
-router.post('/', async (req, res) => {
+// 릴스 업로드 (여러 장 지원)
+router.post('/', upload.array('media', 10), async (req, res) => {
     try {
         const userId = req.user.id;
-        const { media_urls, caption } = req.body;
+        const { caption } = req.body;
         
-        // media_urls: [{ url: '...', type: 'image' or 'video' }, ...]
-        if (!media_urls || media_urls.length === 0) {
+        let mediaUrls = [];
+        if (req.files && req.files.length > 0) {
+            mediaUrls = req.files.map(file => ({
+                url: file.path,
+                type: file.mimetype.startsWith('video/') ? 'video' : 'image'
+            }));
+        }
+        
+        if (mediaUrls.length === 0) {
             return res.status(400).json({ success: false, message: '미디어 파일은 필수입니다.' });
         }
         
-        // 미디어 타입 결정
-        let mediaType = 'image';
-        if (media_urls.length > 1) {
-            mediaType = 'multi';
-        } else if (media_urls[0].type === 'video') {
-            mediaType = 'video';
-        }
-        
-        // 썸네일 URL (첫 번째 미디어)
-        let thumbnailUrl = media_urls[0].url;
-        if (media_urls[0].type === 'video') {
-            thumbnailUrl = media_urls[0].url.replace('/upload/', '/upload/so_0/');
+        // 썸네일 (첫 번째 미디어)
+        let thumbnailUrl = mediaUrls[0].url;
+        if (mediaUrls[0].type === 'video') {
+            // Cloudinary 비디오 썸네일
+            thumbnailUrl = mediaUrls[0].url.replace('/upload/', '/upload/so_0/');
         }
         
         // 릴스 저장
         const [result] = await db.query(
-            'INSERT INTO reels (user_id, video_url, thumbnail_url, caption, media_type) VALUES (?, ?, ?, ?, ?)',
-            [userId, media_urls[0].url, thumbnailUrl, caption || null, mediaType]
+            'INSERT INTO reels (user_id, video_url, thumbnail_url, caption, media_urls, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+            [userId, mediaUrls[0].url, thumbnailUrl, caption || null, JSON.stringify(mediaUrls)]
         );
         
-        const reelId = result.insertId;
-        
-        // 다중 미디어인 경우 reel_media 테이블에 저장
-        if (media_urls.length > 0) {
-            for (let i = 0; i < media_urls.length; i++) {
-                await db.query(
-                    'INSERT INTO reel_media (reel_id, media_type, media_url, sort_order) VALUES (?, ?, ?, ?)',
-                    [reelId, media_urls[i].type, media_urls[i].url, i]
-                );
-            }
-        }
-        
-        res.json({ success: true, message: '릴스가 등록되었습니다.', reelId: reelId });
+        res.json({ success: true, message: '릴스가 등록되었습니다.', reelId: result.insertId });
     } catch (error) {
         console.error('릴스 등록 오류:', error);
         res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
@@ -149,7 +177,7 @@ router.get('/:reelId/comments', async (req, res) => {
             JOIN users u ON c.user_id = u.id
             LEFT JOIN profiles pr ON c.user_id = pr.user_id
             WHERE c.reel_id = ?
-            ORDER BY c.created_at ASC
+            ORDER BY c.created_at DESC
         `, [reelId]);
         
         res.json({ success: true, data: comments });
@@ -171,13 +199,38 @@ router.post('/:reelId/comments', async (req, res) => {
         }
         
         await db.query(
-            'INSERT INTO reel_comments (reel_id, user_id, content) VALUES (?, ?, ?)',
+            'INSERT INTO reel_comments (reel_id, user_id, content, created_at) VALUES (?, ?, ?, NOW())',
             [reelId, userId, content.trim()]
         );
         
         res.json({ success: true, message: '댓글이 등록되었습니다.' });
     } catch (error) {
         console.error('릴스 댓글 작성 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    }
+});
+
+// 릴스 댓글 삭제
+router.delete('/comments/:commentId', async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const commentId = parseInt(req.params.commentId);
+        
+        const [comments] = await db.query('SELECT user_id FROM reel_comments WHERE id = ?', [commentId]);
+        
+        if (comments.length === 0) {
+            return res.status(404).json({ success: false, message: '댓글을 찾을 수 없습니다.' });
+        }
+        
+        if (comments[0].user_id !== userId) {
+            return res.status(403).json({ success: false, message: '삭제 권한이 없습니다.' });
+        }
+        
+        await db.query('DELETE FROM reel_comments WHERE id = ?', [commentId]);
+        
+        res.json({ success: true, message: '댓글이 삭제되었습니다.' });
+    } catch (error) {
+        console.error('릴스 댓글 삭제 오류:', error);
         res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
     }
 });
