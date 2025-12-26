@@ -277,13 +277,16 @@ router.post('/:postId/like', async (req, res) => {
             [postId, userId]
         );
         
+        let liked = false;
+        
         if (existing.length > 0) {
             // 좋아요 취소
             await db.query('DELETE FROM likes WHERE post_id = ? AND user_id = ?', [postId, userId]);
-            res.json({ success: true, liked: false, message: '좋아요를 취소했습니다.' });
+            liked = false;
         } else {
             // 좋아요 추가
             await db.query('INSERT INTO likes (post_id, user_id) VALUES (?, ?)', [postId, userId]);
+            liked = true;
             
             // ===== 알림 발송 =====
             // 게시물 작성자에게 알림 (본인 제외)
@@ -313,9 +316,20 @@ router.post('/:postId/like', async (req, res) => {
                     });
                 }
             }
-            
-            res.json({ success: true, liked: true, message: '좋아요를 눌렀습니다.' });
         }
+        
+        // ⭐ 현재 좋아요 개수 조회 (핵심 수정!)
+        const [likeCount] = await db.query(
+            'SELECT COUNT(*) as count FROM likes WHERE post_id = ?',
+            [postId]
+        );
+        
+        res.json({ 
+            success: true, 
+            liked: liked,
+            likeCount: likeCount[0].count,  // ⭐ 좋아요 개수 추가
+            message: liked ? '좋아요를 눌렀습니다.' : '좋아요를 취소했습니다.'
+        });
     } catch (error) {
         console.error('좋아요 오류:', error);
         res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });

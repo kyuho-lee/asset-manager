@@ -3672,18 +3672,52 @@ async function deletePost(postId) {
 }
 
 // 좋아요 토글
+// ========== 피드 좋아요 실시간 업데이트 ==========
+
+// 좋아요 토글 (실시간 UI 업데이트)
 async function toggleLike(postId) {
     try {
         var response = await apiRequest('/feed/' + postId + '/like', { method: 'POST' });
         
         if (response.success) {
-            // 피드 새로고침
-            await loadFeed();
+            // ⭐ 서버 응답의 likeCount 사용
+            var newLikeCount = response.likeCount || 0;
+            var isLiked = response.liked;
+            
+            // 좋아요 개수 업데이트
+            var likeCountEl = document.getElementById('like-count-' + postId);
+            if (likeCountEl) {
+                likeCountEl.textContent = newLikeCount;
+            }
+            
+            // 좋아요 버튼 찾기 및 아이콘 변경
+            var postCard = document.getElementById('post-' + postId);
+            if (postCard) {
+                var likeBtn = postCard.querySelector('button[onclick*="toggleLike(' + postId + ')"]');
+                if (likeBtn) {
+                    // 하트 아이콘과 색상 업데이트
+                    if (isLiked) {
+                        likeBtn.innerHTML = '❤️ <span id="like-count-' + postId + '">' + newLikeCount + '</span>';
+                        likeBtn.style.color = '#ff4444';
+                    } else {
+                        likeBtn.innerHTML = '🤍 <span id="like-count-' + postId + '">' + newLikeCount + '</span>';
+                        likeBtn.style.color = '#666';
+                    }
+                    
+                    // 애니메이션 효과
+                    likeBtn.style.transform = 'scale(1.2)';
+                    setTimeout(function() {
+                        likeBtn.style.transform = 'scale(1)';
+                    }, 200);
+                }
+            }
         }
     } catch (error) {
         console.error('좋아요 오류:', error);
+        alert('좋아요 처리에 실패했습니다.');
     }
 }
+
 
 // 댓글 모달 열기
 async function openCommentModal(postId) {
@@ -3760,7 +3794,7 @@ async function loadComments(postId) {
                 html += '</div>';
             }
             html += '</div>';  // justify-content: space-between div 닫기
-            
+
             // 대댓글 렌더링
             if (comment.replies && comment.replies.length > 0) {
                 html += '<div style="margin-left: 45px; margin-top: 10px;">';
