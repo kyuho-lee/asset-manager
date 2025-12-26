@@ -6095,3 +6095,24 @@ function cancelEditComment() {
     
     currentEditCommentId = null;
 }
+
+// ============ 댓글 좋아요 기능 ============
+
+// 댓글 좋아요 토글
+async function toggleCommentLike(commentId) {
+    try {
+        var response = await apiRequest('/comments/' + commentId + '/like', {
+            method: 'POST'
+        });
+        
+        if (response.success) {
+            // 댓글 목록 새로고침
+            await loadComments(currentCommentPostId);
+        } else {
+            alert('좋아요 실패: ' + response.message);
+        }
+    } catch (error) {
+        console.error('댓글 좋아요 오류:', error);
+        alert('댓글 좋아요 중 오류가 발생했습니다.');
+    }
+}
