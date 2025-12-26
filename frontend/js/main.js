@@ -4612,14 +4612,18 @@ async function uploadStory() {
     var fileInput = document.getElementById('storyImageInput');
     var textInput = document.getElementById('storyTextInput');
     
-    if (!fileInput.files[0]) {
+    if (!fileInput || !fileInput.files[0]) {
         alert('이미지를 선택해주세요.');
         return;
     }
     
     var uploadBtn = document.getElementById('uploadStoryBtn');
-    uploadBtn.textContent = '업로드 중...';
-    uploadBtn.disabled = true;
+    
+    // 버튼 상태 변경 (버튼이 있을 때만)
+    if (uploadBtn) {
+        uploadBtn.textContent = '업로드 중...';
+        uploadBtn.disabled = true;
+    }
     
     try {
         // Cloudinary에 이미지 업로드
@@ -4643,7 +4647,7 @@ async function uploadStory() {
             method: 'POST',
             body: JSON.stringify({
                 image_url: cloudinaryData.secure_url,
-                text_content: textInput.value.trim()
+                text_content: textInput ? textInput.value.trim() : ''
             })
         });
         
@@ -4657,8 +4661,11 @@ async function uploadStory() {
         alert('스토리 업로드에 실패했습니다.');
     }
     
-    uploadBtn.textContent = '올리기';
-    uploadBtn.disabled = false;
+    // 버튼 복원 (버튼이 있을 때만)
+    if (uploadBtn) {
+        uploadBtn.textContent = '올리기';
+        uploadBtn.disabled = false;
+    }
 }
 
 // 스토리 이미지 미리보기
