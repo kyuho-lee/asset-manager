@@ -4619,50 +4619,51 @@ function previewStoryImage(event) {
     }
 }
 
-// 스토리 업로드
-async function uploadStory() {
-    var fileInput = document.getElementById('storyImageInput');
-    var textInput = document.getElementById('storyTextInput');
-    
-    if (!fileInput.files[0]) {
-        alert('이미지를 선택해주세요.');
-        return;
-    }
-    
+// ========== 스토리 기능 (완전 개선) ==========
+var currentStoryUser = null;
+var currentStoryIndex = 0;
+var storyTimer = null;
+var storyProgress = 0;
+var storyPaused = false;
+var touchStartTime = 0;
+var touchStartX = 0;
+
+// 스토리 목록 로드
+async function loadStories() {
     try {
-        // Cloudinary에 이미지 업로드
-        var formData = new FormData();
-        formData.append('file', fileInput.files[0]);
-        formData.append('upload_preset', 'asset_manager');
+        var response = await apiRequest('/stories', { method: 'GET' });
+        var userStories = response.data || [];
         
-        var cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dajotvruq/image/upload', {
-            method: 'POST',
-            body: formData
-        });
+        var container = document.getElementById('storyList');
+        if (!container) return;
         
-        var cloudinaryData = await cloudinaryResponse.json();
-        
-        if (!cloudinaryData.secure_url) {
-            throw new Error('이미지 업로드 실패');
+        if (userStories.length === 0) {
+            container.innerHTML = '<p style="color: #999; font-size: 12px;">아직 스토리가 없습니다.</p>';
+            return;
         }
         
-        // 스토리 저장
-        var response = await apiRequest('/stories', {
-            method: 'POST',
-            body: JSON.stringify({
-                image_url: cloudinaryData.secure_url,
-                text_content: textInput.value.trim()
-            })
-        });
-        
-        if (response.success) {
-            alert('스토리가 등록되었습니다!');
-            closeStoryUploadModal();
-            loadStories();
+        var html = '';
+        for (var i = 0; i < userStories.length; i++) {
+            var user = userStories[i];
+            var initial = user.user_name.charAt(0).toUpperCase();
+            var borderColor = user.has_unviewed ? 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)' : '#ccc';
+            
+            html += '<div class="story-item" onclick="openStoryViewer(' + user.user_id + ')" style="cursor: pointer; text-align: center; min-width: 70px;">';
+            html += '<div style="width: 65px; height: 65px; border-radius: 50%; padding: 3px; background: ' + borderColor + '; margin: 0 auto 5px;">';
+            html += '<div style="width: 100%; height: 100%; border-radius: 50%; background: white; padding: 2px;">';
+            if (user.user_profile_image) {
+                html += '<img src="' + user.user_profile_image + '" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">';
+            } else {
+                html += '<div style="width: 100%; height: 100%; border-radius: 50%; background: #667eea; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">' + initial + '</div>';
+            }
+            html += '</div></div>';
+            html += '<span style="font-size: 11px; color: #666; display: block; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + user.user_name + '</span>';
+            html += '</div>';
         }
+        
+        container.innerHTML = html;
     } catch (error) {
-        console.error('스토리 업로드 오류:', error);
-        alert('스토리 업로드에 실패했습니다.');
+        console.error('스토리 로드 오류:', error);
     }
 }
 
@@ -4679,7 +4680,11 @@ async function openStoryViewer(userId) {
         }
         
         currentStoryIndex = 0;
+        storyPaused = false;
         document.getElementById('storyViewerModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        
+        initStoryGestures();
         showCurrentStory();
     } catch (error) {
         console.error('스토리 뷰어 오류:', error);
@@ -4717,26 +4722,128 @@ async function showCurrentStory() {
     var timeStr = diff < 60 ? diff + '분 전' : Math.floor(diff / 60) + '시간 전';
     document.getElementById('storyViewerTime').textContent = timeStr;
     
+    // 삭제 버튼 표시 여부
+    var deleteBtn = document.getElementById('storyDeleteBtn');
+    if (deleteBtn) {
+        if (currentUser && story.user_id === currentUser.id) {
+            deleteBtn.style.display = 'block';
+        } else {
+            deleteBtn.style.display = 'none';
+        }
+    }
+    
     // 진행바 시작
     startStoryProgress();
 }
 
-// 스토리 진행바
+// 제스처 초기화
+function initStoryGestures() {
+    var modal = document.getElementById('storyViewerModal');
+    if (!modal) return;
+    
+    // 터치 이벤트
+    modal.ontouchstart = function(e) {
+        touchStartTime = Date.now();
+        touchStartX = e.touches[0].clientX;
+        pauseStory();
+    };
+    
+    modal.ontouchmove = function(e) {
+        var diffX = Math.abs(e.touches[0].clientX - touchStartX);
+        if (diffX > 50) {
+            e.preventDefault();
+        }
+    };
+    
+    modal.ontouchend = function(e) {
+        var touchDuration = Date.now() - touchStartTime;
+        var diffX = e.changedTouches[0].clientX - touchStartX;
+        
+        resumeStory();
+        
+        // 좌우 스와이프
+        if (Math.abs(diffX) > 50) {
+            if (diffX > 0) {
+                prevStory();
+            } else {
+                nextStory();
+            }
+        }
+        // 짧은 탭
+        else if (touchDuration < 200) {
+            var screenWidth = window.innerWidth;
+            var tapX = e.changedTouches[0].clientX;
+            
+            // 왼쪽 1/3 → 이전
+            if (tapX < screenWidth / 3) {
+                prevStory();
+            }
+            // 오른쪽 2/3 → 다음
+            else {
+                nextStory();
+            }
+        }
+    };
+    
+    // 마우스 이벤트 (데스크톱)
+    modal.onmousedown = function(e) {
+        touchStartTime = Date.now();
+        touchStartX = e.clientX;
+        pauseStory();
+    };
+    
+    modal.onmouseup = function(e) {
+        var touchDuration = Date.now() - touchStartTime;
+        
+        resumeStory();
+        
+        // 짧은 클릭
+        if (touchDuration < 200) {
+            var screenWidth = window.innerWidth;
+            var clickX = e.clientX;
+            
+            if (clickX < screenWidth / 3) {
+                prevStory();
+            } else {
+                nextStory();
+            }
+        }
+    };
+}
+
+// 진행바 시작
 function startStoryProgress() {
     if (storyTimer) clearInterval(storyTimer);
     storyProgress = 0;
+    storyPaused = false;
     
     var progressBar = document.getElementById('storyProgressBar');
-    progressBar.style.width = '0%';
+    if (progressBar) {
+        progressBar.style.width = '0%';
+    }
     
     storyTimer = setInterval(function() {
-        storyProgress += 2;
-        progressBar.style.width = storyProgress + '%';
-        
-        if (storyProgress >= 100) {
-            nextStory();
+        if (!storyPaused) {
+            storyProgress += 2;
+            if (progressBar) {
+                progressBar.style.width = storyProgress + '%';
+            }
+            
+            if (storyProgress >= 100) {
+                nextStory();
+            }
         }
-    }, 100); // 5초 동안 표시
+    }, 100);
+}
+
+// 일시정지
+function pauseStory() {
+    storyPaused = true;
+}
+
+// 재개
+function resumeStory() {
+    storyPaused = false;
 }
 
 // 다음 스토리
@@ -4754,9 +4861,45 @@ function nextStory() {
 // 이전 스토리
 function prevStory() {
     if (storyTimer) clearInterval(storyTimer);
+    
     if (currentStoryIndex > 0) {
         currentStoryIndex--;
         showCurrentStory();
+    }
+}
+
+// 스토리 삭제
+async function deleteStory() {
+    if (!currentStoryUser || !currentStoryUser.stories[currentStoryIndex]) return;
+    
+    var story = currentStoryUser.stories[currentStoryIndex];
+    
+    if (!confirm('이 스토리를 삭제하시겠습니까?')) return;
+    
+    try {
+        var response = await apiRequest('/stories/' + story.id, { method: 'DELETE' });
+        
+        if (response.success) {
+            alert('스토리가 삭제되었습니다.');
+            
+            // 스토리 목록에서 제거
+            currentStoryUser.stories.splice(currentStoryIndex, 1);
+            
+            // 더 이상 스토리가 없으면 닫기
+            if (currentStoryUser.stories.length === 0) {
+                closeStoryViewer();
+                loadStories();
+            } else {
+                // 마지막 스토리였으면 이전으로
+                if (currentStoryIndex >= currentStoryUser.stories.length) {
+                    currentStoryIndex = currentStoryUser.stories.length - 1;
+                }
+                showCurrentStory();
+            }
+        }
+    } catch (error) {
+        console.error('스토리 삭제 오류:', error);
+        alert('스토리 삭제에 실패했습니다.');
     }
 }
 
@@ -4764,10 +4907,11 @@ function prevStory() {
 function closeStoryViewer() {
     if (storyTimer) clearInterval(storyTimer);
     document.getElementById('storyViewerModal').style.display = 'none';
-    loadStories(); // 조회 상태 갱신
+    document.body.style.overflow = '';
+    loadStories();
 }
 
-console.log('✅ 스토리 기능 로드 완료');
+console.log('✅ 스토리 기능 (완전 개선) 로드 완료');
 
 // ========== 릴스 기능 (다중 미디어 지원) ==========
 var reelsList = [];
@@ -5813,3 +5957,29 @@ function initPostSwipe(postId) {
 }
 
 console.log('✅ 피드 슬라이드 기능 (스와이프) 로드 완료');
+
+
+// 스토리 삭제
+router.delete('/:id', async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const storyId = parseInt(req.params.id);
+        
+        const [stories] = await db.query('SELECT user_id FROM stories WHERE id = ?', [storyId]);
+        
+        if (stories.length === 0) {
+            return res.status(404).json({ success: false, message: '스토리를 찾을 수 없습니다.' });
+        }
+        
+        if (stories[0].user_id !== userId) {
+            return res.status(403).json({ success: false, message: '삭제 권한이 없습니다.' });
+        }
+        
+        await db.query('DELETE FROM stories WHERE id = ?', [storyId]);
+        
+        res.json({ success: true, message: '스토리가 삭제되었습니다.' });
+    } catch (error) {
+        console.error('스토리 삭제 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    }
+});
