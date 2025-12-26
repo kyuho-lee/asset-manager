@@ -4758,9 +4758,39 @@ async function openStoryViewer(userId) {
 
 // 현재 스토리 표시
 async function showCurrentStory() {
-    // ... 기존 코드 ...
+    if (!currentStoryUser || currentStoryIndex >= currentStoryUser.stories.length) {
+        closeStoryViewer();
+        return;
+    }
     
-    // ⭐ 더보기 버튼 표시 여부
+    var story = currentStoryUser.stories[currentStoryIndex];
+    
+    // 조회 기록 추가
+    await apiRequest('/stories/' + story.id, { method: 'GET' });
+    
+    // UI 업데이트
+    var avatarEl = document.getElementById('storyViewerAvatar');
+    if (currentStoryUser.user_profile_image) {
+        avatarEl.innerHTML = '<img src="' + currentStoryUser.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">';
+    } else {
+        avatarEl.innerHTML = '';
+        avatarEl.textContent = currentStoryUser.user_name.charAt(0).toUpperCase();
+    }
+    document.getElementById('storyViewerName').textContent = currentStoryUser.user_name;
+    document.getElementById('storyViewerImage').src = story.image_url;
+    document.getElementById('storyViewerText').textContent = story.text_content || '';
+    
+    // 시간 계산
+    var created = new Date(story.created_at);
+    var now = new Date();
+    var diff = Math.floor((now - created) / 1000 / 60);
+    var timeStr = diff < 60 ? diff + '분 전' : Math.floor(diff / 60) + '시간 전';
+    document.getElementById('storyViewerTime').textContent = timeStr;
+    
+    // 점 인디케이터 렌더링
+    renderStoryIndicators();
+    
+    // ⭐ 더보기 버튼 표시 여부 (story 변수 사용 전에 선언됨)
     var moreBtn = document.getElementById('storyMoreBtn');
     if (moreBtn) {
         if (currentUser && story.user_id === currentUser.id) {
