@@ -210,23 +210,55 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
         const userId = req.user.id;
         const commentId = parseInt(req.params.id);
         
+        // 댓글 정보 조회 (post_id 필요)
+        const [comment] = await db.query('SELECT post_id FROM comments WHERE id = ?', [commentId]);
+        if (comment.length === 0) {
+            return res.status(404).json({ success: false, message: '댓글을 찾을 수 없습니다.' });
+        }
+        const postId = comment[0].post_id;
+        
         // 이미 좋아요 했는지 확인
         const [existing] = await db.query(
             'SELECT * FROM comment_likes WHERE comment_id = ? AND user_id = ?',
             [commentId, userId]
         );
         
+        let liked;
+        let newLikeCount;
+        
         if (existing.length > 0) {
             // 좋아요 취소
             await db.query('DELETE FROM comment_likes WHERE comment_id = ? AND user_id = ?', [commentId, userId]);
             await db.query('UPDATE comments SET like_count = like_count - 1 WHERE id = ?', [commentId]);
-            res.json({ success: true, liked: false });
+            liked = false;
+            
+            // 업데이트된 like_count 조회
+            const [updated] = await db.query('SELECT like_count FROM comments WHERE id = ?', [commentId]);
+            newLikeCount = updated[0].like_count;
         } else {
             // 좋아요 추가
             await db.query('INSERT INTO comment_likes (comment_id, user_id) VALUES (?, ?)', [commentId, userId]);
             await db.query('UPDATE comments SET like_count = like_count + 1 WHERE id = ?', [commentId]);
-            res.json({ success: true, liked: true });
+            liked = true;
+            
+            // 업데이트된 like_count 조회
+            const [updated] = await db.query('SELECT like_count FROM comments WHERE id = ?', [commentId]);
+            newLikeCount = updated[0].like_count;
         }
+        
+        // ⭐ Socket.io로 실시간 브로드캐스트
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('commentLikeUpdate', {
+                commentId: commentId,
+                postId: postId,
+                likeCount: newLikeCount,
+                liked: liked,
+                userId: userId
+            });
+        }
+        
+        res.json({ success: true, liked: liked, likeCount: newLikeCount });
     } catch (error) {
         console.error('댓글 좋아요 오류:', error);
         res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });

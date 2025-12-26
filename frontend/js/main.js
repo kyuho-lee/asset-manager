@@ -4170,6 +4170,14 @@ function connectSocket() {
     socket.on('disconnect', function() {
         console.log('❌ Socket 연결 해제');
     });
+
+    socket.on('commentLikeUpdate', function(data) {
+        // 현재 열려있는 댓글 모달의 게시물인지 확인
+        if (currentCommentPostId === data.postId) {
+            // 해당 댓글의 좋아요 버튼 찾아서 업데이트
+            updateCommentLikeUI(data.commentId, data.likeCount, data.liked, data.userId);
+        }
+    });
 }
 
 // 알림 목록 로드
@@ -6106,13 +6114,33 @@ async function toggleCommentLike(commentId) {
         });
         
         if (response.success) {
-            // 댓글 목록 새로고침
-            await loadComments(currentCommentPostId);
-        } else {
-            alert('좋아요 실패: ' + response.message);
+            // Socket.io가 자동으로 업데이트하므로 새로고침 불필요!
+            // 하지만 즉각적인 피드백을 위해 로컬 업데이트
+            updateCommentLikeUI(commentId, response.likeCount, response.liked, currentUser.id);
         }
     } catch (error) {
         console.error('댓글 좋아요 오류:', error);
-        alert('댓글 좋아요 중 오류가 발생했습니다.');
+    }
+}
+
+// 댓글 좋아요 UI 실시간 업데이트
+function updateCommentLikeUI(commentId, likeCount, liked, likedUserId) {
+    // 댓글 좋아요 버튼 찾기 (onclick 속성으로 찾기)
+    var buttons = document.querySelectorAll('button[onclick*="toggleCommentLike(' + commentId + ')"]');
+    
+    for (var i = 0; i < buttons.length; i++) {
+        var button = buttons[i];
+        var heartSpan = button.querySelector('span:first-child');
+        var countSpan = button.querySelector('span:last-child');
+        
+        if (heartSpan && countSpan) {
+            // 좋아요 수 업데이트
+            countSpan.textContent = likeCount;
+            
+            // 현재 사용자가 누른 경우에만 하트 아이콘 변경
+            if (currentUser && likedUserId === currentUser.id) {
+                heartSpan.textContent = liked ? '❤️' : '🤍';
+            }
+        }
     }
 }
