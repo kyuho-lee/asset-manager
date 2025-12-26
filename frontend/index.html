@@ -650,66 +650,56 @@ button[onclick*="downloadExcel"]:hover {
         </div>
     </div>
 
-    <!-- 릴스 뷰어 모달 (인스타그램 스타일) -->
+    <!-- 릴스 뷰어 모달 (인스타그램 방식) -->
     <div id="reelViewerModal" class="reel-viewer" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 10000;">
     
-    <!-- 뒤로가기 버튼 (좌측 상단) -->
-    <button onclick="closeReelViewer()" style="position: absolute; top: 15px; left: 15px; z-index: 20; background: none; border: none; color: white; font-size: 28px; cursor: pointer;">‹</button>
-    
-    <!-- 영상 영역 -->
-    <div class="reel-video-wrapper">
-        <video id="reelViewerVideo" autoplay loop playsinline onclick="this.paused ? this.play() : this.pause()"></video>
-    </div>
-    
-    <!-- 하단 정보 영역 -->
-        <div class="reel-bottom-area" style="z-index: 10;">
-            <!-- 우측 액션 버튼 (세로 배치) -->
-            <div class="reel-actions">
-                <!-- 좋아요 -->
-                <div style="text-align: center;">
-                    <button onclick="toggleReelLike()" style="background: none; border: none; cursor: pointer; padding: 10px;">
-                        <span id="reelLikeBtn" style="font-size: 28px;">🤍</span>
-                    </button>
-                    <p id="reelLikeCount" style="color: white; font-size: 12px; margin: 5px 0 0 0;">0</p>
-                </div>
-                <!-- 댓글 -->
-                <div style="text-align: center;">
-                    <button onclick="openReelComments()" style="background: none; border: none; cursor: pointer; padding: 10px;">
-                        <span style="font-size: 26px;">💬</span>
-                    </button>
-                    <p id="reelCommentCount" style="color: white; font-size: 12px; margin: 5px 0 0 0;">0</p>
-                </div>
-                <!-- 더보기 메뉴 -->
-                <div style="text-align: center; position: relative;">
-                    <button onclick="toggleReelMenu()" style="background: none; border: none; cursor: pointer; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 3px;">
-                        <span style="width: 5px; height: 5px; background: white; border-radius: 50%;"></span>
-                        <span style="width: 5px; height: 5px; background: white; border-radius: 50%;"></span>
-                        <span style="width: 5px; height: 5px; background: white; border-radius: 50%;"></span>
-                    </button>
-                    <!-- 드롭다운 메뉴 -->
-                    <div id="reelMoreMenu" style="display: none; position: absolute; bottom: 50px; right: 0; background: #222; border-radius: 12px; overflow: hidden; min-width: 140px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
-                        <button onclick="shareReel()" style="width: 100%; padding: 14px 18px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px;">
-                            <span>📤</span> 공유하기
-                        </button>
-                        <button id="reelDeleteBtn" onclick="deleteReel()" style="width: 100%; padding: 14px 18px; background: none; border: none; color: #ff4444; text-align: left; cursor: pointer; font-size: 14px; display: none; align-items: center; gap: 10px; border-top: 1px solid #333;">
-                            <span>🗑️</span> 삭제하기
-                        </button>
-                    </div>
-                </div>
-            </div>
+        <!-- 뒤로가기 버튼 (좌측 상단) -->
+        <button onclick="closeReelViewer()" style="position: absolute; top: 15px; left: 15px; z-index: 20; background: none; border: none; color: white; font-size: 28px; cursor: pointer;">‹</button>
+        
+        <!-- 스크롤 컨테이너 -->
+        <div id="reelScrollContainer" style="width: 100%; height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; -ms-overflow-style: none;">
+            <!-- 릴스 아이템들이 여기에 동적으로 추가됨 -->
+        </div>
             
-            <!-- 프로필 + 이름 + 캡션 -->
-            <div class="reel-info">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                    <div id="reelUserAvatar" style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; border: 2px solid white; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 14px;"></div>
-                    <span id="reelUserName" style="color: white; font-weight: 600; font-size: 14px;"></span>
-                    <button id="reelFollowBtn" onclick="toggleReelFollow()" style="padding: 6px 16px; background: transparent; border: 1px solid white; color: white; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">팔로우</button>
+        <!-- 우측 액션 버튼 (고정) -->
+        <div class="reel-actions" style="position: fixed; right: 15px; bottom: 100px; z-index: 20;">
+            <!-- 좋아요 -->
+            <div style="text-align: center;">
+                <button id="reelLikeBtnFixed" onclick="toggleReelLike()" style="background: none; border: none; cursor: pointer; padding: 10px;">
+                    <span style="font-size: 28px;">🤍</span>
+                </button>
+                <p id="reelLikeCountFixed" style="color: white; font-size: 12px; margin: 5px 0 0 0;">0</p>
+            </div>
+            <!-- 댓글 -->
+            <div style="text-align: center;">
+                <button onclick="openReelComments()" style="background: none; border: none; cursor: pointer; padding: 10px;">
+                    <span style="font-size: 26px;">💬</span>
+                </button>
+                <p id="reelCommentCountFixed" style="color: white; font-size: 12px; margin: 5px 0 0 0;">0</p>
+            </div>
+            <!-- 더보기 메뉴 -->
+            <div style="text-align: center; position: relative;">
+                <button onclick="toggleReelMenu()" style="background: none; border: none; cursor: pointer; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+                    <span style="width: 5px; height: 5px; background: white; border-radius: 50%;"></span>
+                    <span style="width: 5px; height: 5px; background: white; border-radius: 50%;"></span>
+                    <span style="width: 5px; height: 5px; background: white; border-radius: 50%;"></span>
+                </button>
+                <!-- 드롭다운 메뉴 -->
+                <div id="reelMoreMenu" style="display: none; position: absolute; bottom: 50px; right: 0; background: #222; border-radius: 12px; overflow: hidden; min-width: 140px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+                    <button id="reelFollowBtn" onclick="toggleReelFollow()" style="width: 100%; padding: 14px 18px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px;">
+                        <span>➕</span> 팔로우
+                    </button>
+                    <button onclick="shareReel()" style="width: 100%; padding: 14px 18px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #333;">
+                        <span>📤</span> 공유하기
+                    </button>
+                    <button id="reelDeleteBtn" onclick="deleteReel()" style="width: 100%; padding: 14px 18px; background: none; border: none; color: #ff4444; text-align: left; cursor: pointer; font-size: 14px; display: none; align-items: center; gap: 10px; border-top: 1px solid #333;">
+                        <span>🗑️</span> 삭제하기
+                    </button>
                 </div>
-                <p id="reelCaption" style="color: white; font-size: 14px; margin: 0; line-height: 1.4; text-shadow: 0 1px 3px rgba(0,0,0,0.8);"></p>
             </div>
         </div>
-        
-</div>
+
+    </div>
 
 
 

@@ -4963,69 +4963,136 @@ async function uploadReel() {
     uploadBtn.disabled = false;
 }
 
-// ========== 릴스 뷰어 ==========
+// ========== 릴스 뷰어 (인스타그램 방식) ==========
+
+var currentReelIndex = 0;
 
 function openReelViewer(index) {
     currentReelIndex = index;
     document.getElementById('reelViewerModal').style.display = 'block';
     document.body.style.overflow = 'hidden';
-    showCurrentReel();
-    initReelViewerSwipe();
+    
+    renderAllReelsInViewer();
+    scrollToReelIndex(index);
 }
 
-async function showCurrentReel() {
-    if (currentReelIndex < 0 || currentReelIndex >= reelsList.length) {
-        closeReelViewer();
-        return;
+// 모든 릴스를 DOM에 렌더링
+function renderAllReelsInViewer() {
+    var container = document.getElementById('reelScrollContainer');
+    container.innerHTML = '';
+    
+    for (var i = 0; i < reelsList.length; i++) {
+        var reel = reelsList[i];
+        
+        // 릴스 아이템
+        var reelItem = document.createElement('div');
+        reelItem.id = 'reel-item-' + i;
+        reelItem.className = 'reel-scroll-item';
+        reelItem.setAttribute('data-reel-index', i);
+        
+        // 미디어 파싱
+        var mediaUrls = [];
+        if (reel.media_urls) {
+            try {
+                mediaUrls = typeof reel.media_urls === 'string' ? JSON.parse(reel.media_urls) : reel.media_urls;
+            } catch (e) {
+                mediaUrls = [];
+            }
+        }
+        if (mediaUrls.length === 0 && reel.video_url) {
+            mediaUrls = [{ type: 'video', url: reel.video_url }];
+        }
+        
+        var media = mediaUrls[0] || {};
+        
+        // 미디어 HTML
+        if (media.type === 'video') {
+            reelItem.innerHTML = '<video class="reel-video" data-index="' + i + '" src="' + media.url + '" loop playsinline onclick="this.paused ? this.play() : this.pause()" style="max-width: 100%; max-height: 100vh; object-fit: contain;"></video>';
+        } else {
+            reelItem.innerHTML = '<img src="' + media.url + '" style="max-width: 100%; max-height: 100vh; object-fit: contain; user-select: none;" draggable="false">';
+        }
+        
+        // 하단 정보
+        var infoDiv = document.createElement('div');
+        infoDiv.className = 'reel-item-info';
+        
+        var infoHtml = '<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">';
+        infoHtml += '<div style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; border: 2px solid white; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 14px;">';
+        if (reel.user_profile_image) {
+            infoHtml += '<img src="' + reel.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">';
+        } else {
+            infoHtml += reel.user_name.charAt(0).toUpperCase();
+        }
+        infoHtml += '</div>';
+        infoHtml += '<span style="color: white; font-weight: 600; font-size: 14px;">' + reel.user_name + '</span>';
+        infoHtml += '</div>';
+        
+        if (reel.caption) {
+            infoHtml += '<p style="color: white; font-size: 14px; margin: 0; line-height: 1.4; text-shadow: 0 1px 3px rgba(0,0,0,0.8); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">' + reel.caption + '</p>';
+        }
+        
+        infoDiv.innerHTML = infoHtml;
+        reelItem.appendChild(infoDiv);
+        container.appendChild(reelItem);
     }
     
-    var reel = reelsList[currentReelIndex];
+    // 스크롤 이벤트
+    container.addEventListener('scroll', onReelScroll, { passive: true });
+}
+
+// 특정 릴스로 스크롤
+function scrollToReelIndex(index) {
+    var container = document.getElementById('reelScrollContainer');
+    var targetItem = document.getElementById('reel-item-' + index);
+    
+    if (targetItem) {
+        targetItem.scrollIntoView({ behavior: 'instant', block: 'start' });
+        
+        setTimeout(function() {
+            updateCurrentReelInfo(index);
+            playVideoAtIndex(index);
+        }, 100);
+    }
+}
+
+// 스크롤 이벤트
+var scrollTimeout;
+function onReelScroll() {
+    clearTimeout(scrollTimeout);
+    
+    scrollTimeout = setTimeout(function() {
+        var container = document.getElementById('reelScrollContainer');
+        var scrollTop = container.scrollTop;
+        var windowHeight = window.innerHeight;
+        
+        var newIndex = Math.round(scrollTop / windowHeight);
+        
+        if (newIndex !== currentReelIndex && newIndex >= 0 && newIndex < reelsList.length) {
+            pauseAllVideos();
+            currentReelIndex = newIndex;
+            updateCurrentReelInfo(newIndex);
+            playVideoAtIndex(newIndex);
+        }
+    }, 100);
+}
+
+// 현재 릴스 정보 업데이트
+async function updateCurrentReelInfo(index) {
+    var reel = reelsList[index];
+    if (!reel) return;
     
     // 조회수 증가
-    await apiRequest('/reels/' + reel.id + '/view', { method: 'POST' });
-    
-    // 미디어 파싱
-    var mediaUrls = [];
-    if (reel.media_urls) {
-        try {
-            mediaUrls = typeof reel.media_urls === 'string' ? JSON.parse(reel.media_urls) : reel.media_urls;
-        } catch (e) {
-            mediaUrls = [];
-        }
-    }
-    if (mediaUrls.length === 0 && reel.video_url) {
-        mediaUrls = [{ type: 'video', url: reel.video_url }];
-    }
-    
-    var media = mediaUrls[0] || {};
-    
-   // 비디오 요소
-    var wrapper = document.querySelector('.reel-video-wrapper');
-    if (!wrapper) return;
-
-    if (media.type === 'video') {
-        wrapper.innerHTML = '<video id="reelViewerVideo" src="' + media.url + '" autoplay loop playsinline onclick="this.paused ? this.play() : this.pause()" style="max-width: 100%; max-height: 100vh; object-fit: contain;"></video>';
-    } else {
-        wrapper.innerHTML = '<img src="' + media.url + '" style="max-width: 100%; max-height: 100vh; object-fit: contain; user-select: none;" draggable="false">';
-    }
-    
-    // 프로필 정보
-    var avatarEl = document.getElementById('reelUserAvatar');
-    if (reel.user_profile_image) {
-        avatarEl.innerHTML = '<img src="' + reel.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">';
-    } else {
-        avatarEl.innerHTML = '';
-        avatarEl.textContent = reel.user_name.charAt(0).toUpperCase();
-    }
-    document.getElementById('reelUserName').textContent = reel.user_name;
-    document.getElementById('reelCaption').textContent = reel.caption || '';
+    await apiRequest('/reels/' + reel.id + '/view', { method: 'POST' }).catch(function() {});
     
     // 좋아요
-    document.getElementById('reelLikeCount').textContent = reel.like_count || 0;
-    document.getElementById('reelLikeBtn').textContent = reel.is_liked ? '❤️' : '🤍';
+    document.getElementById('reelLikeCountFixed').textContent = reel.like_count || 0;
+    var likeBtn = document.getElementById('reelLikeBtnFixed');
+    likeBtn.innerHTML = reel.is_liked ? 
+        '<span style="font-size: 28px;">❤️</span>' :
+        '<span style="font-size: 28px;">🤍</span>';
     
     // 댓글
-    document.getElementById('reelCommentCount').textContent = reel.comment_count || 0;
+    document.getElementById('reelCommentCountFixed').textContent = reel.comment_count || 0;
     
     // 팔로우/삭제 버튼
     var followBtn = document.getElementById('reelFollowBtn');
@@ -5035,7 +5102,7 @@ async function showCurrentReel() {
         followBtn.style.display = 'none';
         deleteBtn.style.display = 'flex';
     } else {
-        followBtn.style.display = 'inline-block';
+        followBtn.style.display = 'flex';
         deleteBtn.style.display = 'none';
         checkReelFollowStatus(reel.user_id);
     }
@@ -5043,120 +5110,48 @@ async function showCurrentReel() {
     document.getElementById('reelMoreMenu').style.display = 'none';
 }
 
-// 부드러운 전환
-var reelTransitioning = false;
-
-function nextReelSmooth() {
-    if (reelTransitioning) return;
-    if (currentReelIndex >= reelsList.length - 1) return;
-    
-    reelTransitioning = true;
-    var modal = document.getElementById('reelViewerModal');
-    var wrapper = document.querySelector('.reel-video-wrapper');
-    
-    // ⭐ 슬라이드 + 페이드 애니메이션
-    modal.style.transition = 'transform 0.3s ease, opacity 0.2s ease';
-    modal.style.transform = 'translateY(-50%)';
-    modal.style.opacity = '0';
-    
-    setTimeout(function() {
-        // 콘텐츠 변경
-        currentReelIndex++;
-        showCurrentReel();
-        
-        // 위치 리셋
-        modal.style.transition = 'none';
-        modal.style.transform = 'translateY(50%)';
-        
-        setTimeout(function() {
-            // 나타나기
-            modal.style.transition = 'transform 0.3s ease, opacity 0.2s ease';
-            modal.style.transform = 'translateY(0)';
-            modal.style.opacity = '1';
-            
-            setTimeout(function() {
-                modal.style.transition = '';
-                reelTransitioning = false;
-            }, 300);
-        }, 20);
-    }, 300);
+// 비디오 재생
+function playVideoAtIndex(index) {
+    var video = document.querySelector('.reel-video[data-index="' + index + '"]');
+    if (video) {
+        video.play().catch(function() {});
+    }
 }
 
-function prevReelSmooth() {
-    if (reelTransitioning) return;
-    if (currentReelIndex <= 0) return;
-    
-    reelTransitioning = true;
-    var modal = document.getElementById('reelViewerModal');
-    
-    // ⭐ 슬라이드 + 페이드 애니메이션
-    modal.style.transition = 'transform 0.3s ease, opacity 0.2s ease';
-    modal.style.transform = 'translateY(50%)';
-    modal.style.opacity = '0';
-    
-    setTimeout(function() {
-        // 콘텐츠 변경
-        currentReelIndex--;
-        showCurrentReel();
-        
-        // 위치 리셋
-        modal.style.transition = 'none';
-        modal.style.transform = 'translateY(-50%)';
-        
-        setTimeout(function() {
-            // 나타나기
-            modal.style.transition = 'transform 0.3s ease, opacity 0.2s ease';
-            modal.style.transform = 'translateY(0)';
-            modal.style.opacity = '1';
-            
-            setTimeout(function() {
-                modal.style.transition = '';
-                reelTransitioning = false;
-            }, 300);
-        }, 20);
-    }, 300);
+// 모든 비디오 정지
+function pauseAllVideos() {
+    var videos = document.querySelectorAll('.reel-video');
+    for (var i = 0; i < videos.length; i++) {
+        videos[i].pause();
+    }
 }
 
-// 스와이프로 릴스 전환
-var reelViewerSwipeStartY = 0;
-var reelViewerSwipeStartTime = 0;
-
-function initReelViewerSwipe() {
-    var modal = document.getElementById('reelViewerModal');
+// 릴스 좋아요
+async function toggleReelLike() {
+    var reel = reelsList[currentReelIndex];
+    if (!reel) return;
     
-    // 터치 이벤트
-    modal.ontouchstart = function(e) {
-        reelViewerSwipeStartY = e.touches[0].clientY;
-        reelViewerSwipeStartTime = Date.now();
-    };
-    
-    modal.ontouchend = function(e) {
-        var endY = e.changedTouches[0].clientY;
-        var diffY = reelViewerSwipeStartY - endY;
-        var diffTime = Date.now() - reelViewerSwipeStartTime;
+    try {
+        var response = await apiRequest('/reels/' + reel.id + '/like', { method: 'POST' });
         
-        // 빠른 스와이프 (300ms 이내, 50px 이상)
-        if (diffTime < 300 && Math.abs(diffY) > 50) {
-            if (diffY > 0) {
-                // 위로 스와이프 → 다음 릴스
-                nextReelSmooth();
+        if (response.success) {
+            if (response.liked) {
+                reel.is_liked = 1;
+                reel.like_count = (reel.like_count || 0) + 1;
             } else {
-                // 아래로 스와이프 → 이전 릴스
-                prevReelSmooth();
+                reel.is_liked = 0;
+                reel.like_count = Math.max(0, (reel.like_count || 0) - 1);
             }
+            
+            document.getElementById('reelLikeCountFixed').textContent = reel.like_count;
+            var likeBtn = document.getElementById('reelLikeBtnFixed');
+            likeBtn.innerHTML = reel.is_liked ? 
+                '<span style="font-size: 28px;">❤️</span>' :
+                '<span style="font-size: 28px;">🤍</span>';
         }
-    };
-    
-    // 마우스 휠
-    modal.onwheel = function(e) {
-        e.preventDefault();
-        
-        if (e.deltaY > 50) {
-            nextReelSmooth();
-        } else if (e.deltaY < -50) {
-            prevReelSmooth();
-        }
-    };
+    } catch (error) {
+        console.error('릴스 좋아요 오류:', error);
+    }
 }
 
 // 릴스 삭제
@@ -5164,28 +5159,16 @@ async function deleteReel() {
     var reel = reelsList[currentReelIndex];
     if (!reel) return;
     
-    toggleReelMenu(); // 메뉴 닫기
+    toggleReelMenu();
     
-    if (!confirm('이 릴스를 삭제하시겠습니까?')) {
-        return;
-    }
+    if (!confirm('이 릴스를 삭제하시겠습니까?')) return;
     
     try {
         var response = await apiRequest('/reels/' + reel.id, { method: 'DELETE' });
         
         if (response.success) {
             alert('릴스가 삭제되었습니다.');
-            
-            reelsList.splice(currentReelIndex, 1);
-            
-            if (reelsList.length === 0) {
-                closeReelViewer();
-            } else if (currentReelIndex >= reelsList.length) {
-                currentReelIndex = reelsList.length - 1;
-                showCurrentReel();
-            } else {
-                showCurrentReel();
-            }
+            closeReelViewer();
         }
     } catch (error) {
         console.error('릴스 삭제 오류:', error);
@@ -5193,57 +5176,10 @@ async function deleteReel() {
     }
 }
 
-// 릴스 뷰어 클릭 시 메뉴 닫기
-document.getElementById('reelViewerModal').addEventListener('click', function(e) {
-    if (!e.target.closest('.reel-actions')) {
-        document.getElementById('reelMoreMenu').style.display = 'none';
-    }
-});
-
-// 릴스 미디어 렌더링
-function renderReelViewerMedia(reel) {
-    var wrapper = document.querySelector('.reel-video-wrapper');
-    
-    // media_urls 파싱
-    var mediaUrls = [];
-    if (reel.media_urls) {
-        if (typeof reel.media_urls === 'string') {
-            try {
-                mediaUrls = JSON.parse(reel.media_urls);
-            } catch (e) {
-                console.error('media_urls 파싱 오류:', e);
-            }
-        } else if (Array.isArray(reel.media_urls)) {
-            mediaUrls = reel.media_urls;
-        }
-    }
-    
-    // 하위 호환성
-    if (mediaUrls.length === 0 && reel.video_url) {
-        mediaUrls = [{ type: 'video', url: reel.video_url }];
-    }
-    
-    // ⭐ 첫 번째 미디어만 표시
-    var media = mediaUrls[0];
-    var mediaHtml = '';
-    
-    if (media.type === 'video') {
-        mediaHtml = '<video src="' + media.url + '" autoplay loop playsinline onclick="this.paused ? this.play() : this.pause()" style="max-width: 100%; max-height: 100%; object-fit: contain;"></video>';
-    } else {
-        mediaHtml = '<img src="' + media.url + '" style="max-width: 100%; max-height: 100%; object-fit: contain; user-select: none;" draggable="false">';
-    }
-    
-    wrapper.innerHTML = mediaHtml;
-}
-
 // 릴스 더보기 메뉴 토글
 function toggleReelMenu() {
     var menu = document.getElementById('reelMoreMenu');
-    if (menu.style.display === 'none') {
-        menu.style.display = 'block';
-    } else {
-        menu.style.display = 'none';
-    }
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
 }
 
 // 릴스 공유
@@ -5251,7 +5187,6 @@ function shareReel() {
     var reel = reelsList[currentReelIndex];
     if (!reel) return;
     
-    // URL 복사
     var url = window.location.origin + '?reel=' + reel.id;
     
     if (navigator.share) {
@@ -5268,79 +5203,12 @@ function shareReel() {
     toggleReelMenu();
 }
 
-// ========== 릴스 업로드 (1개만) ==========
-
-var reelMediaFiles = [];
-
-function previewReelMedia(event) {
-    var files = event.target.files;
-    if (!files || files.length === 0) return;
-    
-    // 1개만 허용
-    var file = files[0];
-    var type = file.type.startsWith('video') ? 'video' : 'image';
-    
-    reelMediaFiles = [{
-        file: file,
-        type: type,
-        url: URL.createObjectURL(file)
-    }];
-    
-    // 미리보기 표시
-    document.getElementById('reelMediaLabel').style.display = 'none';
-    document.getElementById('reelPreviewContainer').style.display = 'block';
-    
-    renderReelPreview();
-}
-
-function renderReelPreview() {
-    var slider = document.getElementById('reelPreviewSlider');
-    var indicator = document.getElementById('reelPreviewIndicator');
-    var media = reelMediaFiles[0];
-    
-    // 미디어 표시
-    if (media.type === 'video') {
-        slider.innerHTML = '<video src="' + media.url + '" style="max-width: 100%; max-height: 100%; border-radius: 8px;" controls autoplay muted></video>';
-    } else {
-        slider.innerHTML = '<img src="' + media.url + '" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;">';
-    }
-    
-    // 인디케이터 숨기기 (1개만)
-    indicator.style.display = 'none';
-    document.getElementById('reelPrevBtn').style.display = 'none';
-    document.getElementById('reelNextBtn').style.display = 'none';
-}
-
-function resetReelMedia() {
-    reelMediaFiles = [];
-    document.getElementById('reelMediaInput').value = '';
-    document.getElementById('reelMediaLabel').style.display = 'flex';
-    document.getElementById('reelPreviewContainer').style.display = 'none';
-}
-
-
-// 스와이프 이벤트 초기화
-var reelSwipeStartX = 0;
-var reelSwipeStartY = 0;
-var reelSwiping = false;
-
-
-
-
-function prevReel() {
-    var reel = reelsList[currentReelIndex];
-    var media = reel.media || [];
-    
-    // 다중 미디어면 이전 미디어로
-    if (media.length > 1 && currentReelMediaIndex > 0) {
-        currentReelMediaIndex--;
-        renderReelViewerMedia(reel);
-    } else if (currentReelIndex > 0) {
-        // 이전 릴스로
-        currentReelIndex--;
-        currentReelMediaIndex = 0;
-        showCurrentReel();
-    }
+// 릴스 뷰어 닫기
+function closeReelViewer() {
+    pauseAllVideos();
+    document.getElementById('reelViewerModal').style.display = 'none';
+    document.body.style.overflow = '';
+    loadReels();
 }
 
 // 릴스에서 팔로우 상태 확인
@@ -5350,13 +5218,9 @@ async function checkReelFollowStatus(userId) {
         var btn = document.getElementById('reelFollowBtn');
         
         if (response.isFollowing) {
-            btn.textContent = '팔로잉';
-            btn.style.background = 'rgba(255,255,255,0.2)';
-            btn.style.borderColor = 'transparent';
+            btn.innerHTML = '<span>➕</span> 팔로잉';
         } else {
-            btn.textContent = '팔로우';
-            btn.style.background = 'transparent';
-            btn.style.borderColor = 'white';
+            btn.innerHTML = '<span>➕</span> 팔로우';
         }
     } catch (error) {
         console.error('팔로우 상태 확인 오류:', error);
@@ -5369,75 +5233,19 @@ async function toggleReelFollow() {
     if (!reel) return;
     
     var btn = document.getElementById('reelFollowBtn');
-    var isFollowing = btn.textContent === '팔로잉';
+    var isFollowing = btn.textContent.includes('팔로잉');
     
     try {
         if (isFollowing) {
             await apiRequest('/follows/' + reel.user_id, { method: 'DELETE' });
-            btn.textContent = '팔로우';
-            btn.style.background = 'transparent';
-            btn.style.borderColor = 'white';
+            btn.innerHTML = '<span>➕</span> 팔로우';
         } else {
             await apiRequest('/follows/' + reel.user_id, { method: 'POST' });
-            btn.textContent = '팔로잉';
-            btn.style.background = 'rgba(255,255,255,0.2)';
-            btn.style.borderColor = 'transparent';
+            btn.innerHTML = '<span>➕</span> 팔로잉';
         }
     } catch (error) {
         console.error('팔로우 토글 오류:', error);
     }
-}
-
-// 릴스 좋아요 토글
-async function toggleReelLike() {
-    var reel = reelsList[currentReelIndex];
-    
-    try {
-        var response = await apiRequest('/reels/' + reel.id + '/like', { method: 'POST' });
-        
-        if (response.success) {
-            if (response.liked) {
-                reel.is_liked = 1;
-                reel.like_count = (reel.like_count || 0) + 1;
-                document.getElementById('reelLikeBtn').textContent = '❤️';
-            } else {
-                reel.is_liked = 0;
-                reel.like_count = Math.max(0, (reel.like_count || 0) - 1);
-                document.getElementById('reelLikeBtn').textContent = '🤍';
-            }
-            document.getElementById('reelLikeCount').textContent = reel.like_count;
-        }
-    } catch (error) {
-        console.error('릴스 좋아요 오류:', error);
-    }
-}
-
-function nextReel() {
-    if (currentReelIndex < reelsList.length - 1) {
-        currentReelIndex++;
-        currentReelMediaIndex = 0;
-        showCurrentReel();
-    }
-}
-
-function prevReel() {
-    if (currentReelIndex > 0) {
-        currentReelIndex--;
-        currentReelMediaIndex = 0;
-        showCurrentReel();
-    }
-}
-
-function closeReelViewer() {
-    // 모든 비디오 정지
-    var videos = document.querySelectorAll('.reel-video-wrapper video');
-    for (var i = 0; i < videos.length; i++) {
-        videos[i].pause();
-    }
-    
-    document.getElementById('reelViewerModal').style.display = 'none';
-    document.body.style.overflow = '';
-    loadReels();
 }
 
 function openReelComments() {
@@ -5445,7 +5253,7 @@ function openReelComments() {
     alert('댓글 기능은 추후 업데이트 예정입니다!\n현재 댓글 수: ' + (reel.comment_count || 0));
 }
 
-console.log('✅ 릴스 기능 (다중 미디어) 로드 완료');
+console.log('✅ 릴스 뷰어 (인스타그램 방식) 로드 완료');
 
 // ========== 사용자 검색 기능 ==========
 var searchTimeout = null;
