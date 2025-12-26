@@ -4594,6 +4594,7 @@ async function loadStories() {
 // 스토리 업로드 모달 열기
 function openStoryUploadModal() {
     document.getElementById('storyUploadModal').classList.add('active');
+    document.body.classList.add('modal-open');
     document.getElementById('storyPreviewImage').style.display = 'none';
     document.getElementById('storyImageLabel').style.display = 'block';
     document.getElementById('storyImageInput').value = '';
@@ -4603,6 +4604,61 @@ function openStoryUploadModal() {
 // 스토리 업로드 모달 닫기
 function closeStoryUploadModal() {
     document.getElementById('storyUploadModal').classList.remove('active');
+    document.body.classList.remove('modal-open');
+}
+
+// 스토리 업로드
+async function uploadStory() {
+    var fileInput = document.getElementById('storyImageInput');
+    var textInput = document.getElementById('storyTextInput');
+    
+    if (!fileInput.files[0]) {
+        alert('이미지를 선택해주세요.');
+        return;
+    }
+    
+    var uploadBtn = document.getElementById('uploadStoryBtn');
+    uploadBtn.textContent = '업로드 중...';
+    uploadBtn.disabled = true;
+    
+    try {
+        // Cloudinary에 이미지 업로드
+        var formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('upload_preset', 'asset_manager');
+        
+        var cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dajotvruq/image/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        var cloudinaryData = await cloudinaryResponse.json();
+        
+        if (!cloudinaryData.secure_url) {
+            throw new Error('이미지 업로드 실패');
+        }
+        
+        // 스토리 저장
+        var response = await apiRequest('/stories', {
+            method: 'POST',
+            body: JSON.stringify({
+                image_url: cloudinaryData.secure_url,
+                text_content: textInput.value.trim()
+            })
+        });
+        
+        if (response.success) {
+            alert('스토리가 등록되었습니다!');
+            closeStoryUploadModal();
+            loadStories();
+        }
+    } catch (error) {
+        console.error('스토리 업로드 오류:', error);
+        alert('스토리 업로드에 실패했습니다.');
+    }
+    
+    uploadBtn.textContent = '올리기';
+    uploadBtn.disabled = false;
 }
 
 // 스토리 이미지 미리보기
@@ -4618,6 +4674,8 @@ function previewStoryImage(event) {
         reader.readAsDataURL(file);
     }
 }
+
+
 
 // ========== 스토리 기능 (완전 개선) ==========
 var currentStoryUser = null;
