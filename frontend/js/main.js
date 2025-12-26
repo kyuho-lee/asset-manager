@@ -4255,6 +4255,33 @@ function connectSocket() {
             updateCommentLikeUI(data.commentId, data.likeCount, data.liked, data.userId);
         }
     });
+
+    socket.on('newComment', function(data) {
+        console.log('💬 새 댓글:', data);
+        if (currentCommentPostId && currentCommentPostId === data.postId) {
+            loadComments(data.postId);
+        }
+        
+        var commentCountEl = document.getElementById('comment-count-' + data.postId);
+        if (commentCountEl) {
+            var currentCount = parseInt(commentCountEl.textContent) || 0;
+            commentCountEl.textContent = data.isReply ? currentCount : currentCount + 1;
+        }
+    });
+
+    socket.on('deleteComment', function(data) {
+        console.log('🗑️ 댓글 삭제:', data);
+        if (currentCommentPostId && currentCommentPostId === data.postId) {
+            loadComments(data.postId);
+        }
+        
+        var commentCountEl = document.getElementById('comment-count-' + data.postId);
+        if (commentCountEl) {
+            var currentCount = parseInt(commentCountEl.textContent) || 0;
+            commentCountEl.textContent = Math.max(0, currentCount - 1);
+        }
+    });
+
 }
 
 // 알림 목록 로드

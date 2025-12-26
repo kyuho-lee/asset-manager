@@ -132,6 +132,16 @@ router.post('/', authenticateToken, async (req, res) => {
         
         newComment[0].replies = [];
         
+
+        // ⭐ Socket.IO 브로드캐스트
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('newComment', {
+                postId: post_id,
+                comment: newComment[0],
+                isReply: !!parent_comment_id
+            });
+        }
         res.json({ success: true, data: newComment[0] });
     } catch (error) {
         console.error('댓글 작성 오류:', error);
@@ -197,6 +207,16 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         
         await db.query('DELETE FROM comments WHERE id = ?', [commentId]);
         
+
+        // ⭐ Socket.IO 브로드캐스트
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('deleteComment', {
+                commentId: commentId,
+                postId: comments[0].post_id
+            });
+        }
+
         res.json({ success: true, message: '댓글이 삭제되었습니다.' });
     } catch (error) {
         console.error('댓글 삭제 오류:', error);
