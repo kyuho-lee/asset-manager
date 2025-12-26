@@ -3737,6 +3737,35 @@ async function loadComments(postId) {
                 html += '<button onclick="deleteComment(' + comment.id + ')" style="background: none; border: none; color: #999; cursor: pointer; font-size: 14px;">🗑️</button>';
             }
             html += '</div>';
+            // 대댓글 렌더링
+            if (comment.replies && comment.replies.length > 0) {
+                html += '<div style="margin-left: 45px; margin-top: 10px;">';
+                for (var j = 0; j < comment.replies.length; j++) {
+                    var reply = comment.replies[j];
+                    var replyTimeAgo = getTimeAgo(new Date(reply.created_at));
+                    var isMyReply = currentUser && reply.user_id === currentUser.id;
+                    
+                    html += '<div style="padding: 10px 0; border-bottom: 1px solid #f0f0f0;">';
+                    html += '<div style="display: flex; justify-content: space-between; align-items: start;">';
+                    html += '<div style="display: flex; gap: 8px; flex: 1;">';
+                    html += '<div style="width: 28px; height: 28px; border-radius: 50%; overflow: hidden; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 11px; flex-shrink: 0;">';
+                    html += reply.user_profile_image ? '<img src="' + reply.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">' : reply.user_name.charAt(0).toUpperCase();
+                    html += '</div>';
+                    html += '<div style="flex: 1;">';
+                    html += '<span style="font-weight: 600; font-size: 13px;">' + reply.user_name + '</span>';
+                    html += '<span style="color: #999; font-size: 11px; margin-left: 8px;">' + replyTimeAgo + '</span>';
+                    html += '<p style="margin: 4px 0 0 0; line-height: 1.4; font-size: 13px;">' + reply.content + '</p>';
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    if (isMyReply) {
+                        html += '<button onclick="deleteComment(' + reply.id + ')" style="background: none; border: none; color: #999; cursor: pointer; font-size: 12px;">🗑️</button>';
+                    }
+                    html += '</div>';
+                    html += '</div>';
+                }
+                html += '</div>';
+            }
             html += '</div>';
         }
         
