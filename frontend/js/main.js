@@ -4757,52 +4757,35 @@ async function openStoryViewer(userId) {
 }
 
 // 현재 스토리 표시
-// 현재 스토리 표시
 async function showCurrentStory() {
-    if (!currentStoryUser || currentStoryIndex >= currentStoryUser.stories.length) {
-        closeStoryViewer();
-        return;
-    }
+    // ... 기존 코드 ...
     
-    var story = currentStoryUser.stories[currentStoryIndex];
-    
-    // 조회 기록 추가
-    await apiRequest('/stories/' + story.id, { method: 'GET' });
-    
-    // UI 업데이트
-    var avatarEl = document.getElementById('storyViewerAvatar');
-    if (currentStoryUser.user_profile_image) {
-        avatarEl.innerHTML = '<img src="' + currentStoryUser.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">';
-    } else {
-        avatarEl.innerHTML = '';
-        avatarEl.textContent = currentStoryUser.user_name.charAt(0).toUpperCase();
-    }
-    document.getElementById('storyViewerName').textContent = currentStoryUser.user_name;
-    document.getElementById('storyViewerImage').src = story.image_url;
-    document.getElementById('storyViewerText').textContent = story.text_content || '';
-    
-    // 시간 계산
-    var created = new Date(story.created_at);
-    var now = new Date();
-    var diff = Math.floor((now - created) / 1000 / 60);
-    var timeStr = diff < 60 ? diff + '분 전' : Math.floor(diff / 60) + '시간 전';
-    document.getElementById('storyViewerTime').textContent = timeStr;
-    
-    // ⭐ 점 인디케이터 렌더링
-    renderStoryIndicators();
-    
-    // 삭제 버튼 표시 여부
-    var deleteBtn = document.getElementById('storyDeleteBtn');
-    if (deleteBtn) {
+    // ⭐ 더보기 버튼 표시 여부
+    var moreBtn = document.getElementById('storyMoreBtn');
+    if (moreBtn) {
         if (currentUser && story.user_id === currentUser.id) {
-            deleteBtn.style.display = 'block';
+            moreBtn.style.display = 'block';
         } else {
-            deleteBtn.style.display = 'none';
+            moreBtn.style.display = 'none';
         }
+    }
+    
+    // 메뉴 닫기
+    var menu = document.getElementById('storyMoreMenu');
+    if (menu) {
+        menu.style.display = 'none';
     }
     
     // 진행바 시작
     startStoryProgress();
+}
+
+// ⭐ 스토리 메뉴 토글
+function toggleStoryMenu() {
+    var menu = document.getElementById('storyMoreMenu');
+    if (menu) {
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
 }
 
 // ⭐ 점 인디케이터 렌더링
@@ -4969,6 +4952,9 @@ async function deleteStory() {
     if (!currentStoryUser || !currentStoryUser.stories[currentStoryIndex]) return;
     
     var story = currentStoryUser.stories[currentStoryIndex];
+
+     // ⭐ 메뉴 닫기
+    toggleStoryMenu();
     
     if (!confirm('이 스토리를 삭제하시겠습니까?')) return;
     

@@ -969,7 +969,7 @@ button[onclick*="downloadExcel"]:hover {
         <!-- 상단 영역 -->
         <div style="position: absolute; top: 0; left: 0; right: 0; z-index: 10001; padding: 10px 15px;">
             
-            <!-- ⭐ 점 인디케이터 -->
+            <!-- 점 인디케이터 -->
             <div id="storyIndicators" style="display: flex; gap: 4px; margin-bottom: 15px;"></div>
             
             <!-- 프로필 정보 -->
@@ -982,11 +982,22 @@ button[onclick*="downloadExcel"]:hover {
                     </div>
                 </div>
                 
-                <!-- 삭제 버튼 -->
-                <button id="storyDeleteBtn" onclick="deleteStory()" style="display: none; background: rgba(255,0,0,0.8); color: white; border: none; padding: 6px 12px; border-radius: 15px; cursor: pointer; font-size: 12px; font-weight: 600;">🗑️</button>
-                
-                <!-- 닫기 버튼 -->
-                <button onclick="closeStoryViewer()" style="background: none; border: none; color: white; font-size: 28px; cursor: pointer; padding: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">✕</button>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <!-- ⭐ 더보기 버튼 -->
+                    <div style="position: relative;">
+                        <button id="storyMoreBtn" onclick="toggleStoryMenu()" style="background: none; border: none; color: white; cursor: pointer; padding: 8px; font-size: 24px; display: none;">⋯</button>
+                        
+                        <!-- 드롭다운 메뉴 -->
+                        <div id="storyMoreMenu" style="display: none; position: absolute; top: 40px; right: 0; background: rgba(0,0,0,0.9); border-radius: 12px; overflow: hidden; min-width: 140px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+                            <button onclick="deleteStory()" style="width: 100%; padding: 14px 18px; background: none; border: none; color: #ff4444; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px;">
+                                <span>🗑️</span> 삭제하기
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 닫기 버튼 -->
+                    <button onclick="closeStoryViewer()" style="background: none; border: none; color: white; font-size: 28px; cursor: pointer; padding: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">✕</button>
+                </div>
             </div>
         </div>
         
