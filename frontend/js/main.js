@@ -4934,45 +4934,42 @@ async function uploadReel() {
     uploadBtn.disabled = true;
     
     try {
-        var mediaUrls = [];
+        var caption = document.getElementById('reelCaptionInput').value.trim();
         
+        // ⭐ FormData 사용 (피드처럼)
+        var formData = new FormData();
+        formData.append('caption', caption);
+        
+        // 여러 장 미디어 추가
         for (var i = 0; i < reelMediaFiles.length; i++) {
-            var media = reelMediaFiles[i];
-            var formData = new FormData();
-            formData.append('file', media.file);
-            formData.append('upload_preset', 'asset_manager');
-            
-            var uploadType = media.type === 'video' ? 'video' : 'image';
-            var cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dajotvruq/' + uploadType + '/upload', {
-                method: 'POST',
-                body: formData
-            });
-            
-            var cloudinaryData = await cloudinaryResponse.json();
-            
-            if (!cloudinaryData.secure_url) {
-                throw new Error('파일 업로드 실패');
-            }
-            
-            mediaUrls.push({
-                url: cloudinaryData.secure_url,
-                type: media.type
-            });
+            formData.append('media', reelMediaFiles[i].file);
         }
         
-        var caption = document.getElementById('reelCaptionInput').value.trim();
-        var response = await apiRequest('/reels', {
+        // ⭐ 토큰 추가
+        var token = localStorage.getItem('authToken');
+        if (!token) {
+            alert('로그인이 필요합니다.');
+            uploadBtn.textContent = '올리기';
+            uploadBtn.disabled = false;
+            return;
+        }
+        
+        var response = await fetch(API_BASE_URL + '/reels', {
             method: 'POST',
-            body: JSON.stringify({
-                media_urls: mediaUrls,
-                caption: caption
-            })
+            headers: {
+                'Authorization': 'Bearer ' + token
+            },
+            body: formData
         });
         
-        if (response.success) {
+        var result = await response.json();
+        
+        if (result.success) {
             alert('릴스가 등록되었습니다!');
             closeReelUploadModal();
             loadReels();
+        } else {
+            alert('릴스 업로드 실패: ' + (result.message || '알 수 없는 오류'));
         }
     } catch (error) {
         console.error('릴스 업로드 오류:', error);
