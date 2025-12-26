@@ -2927,8 +2927,9 @@ body.modal-open {
 }
 
 .reels-grid {
-    column-count: 3;  /* Masonry 레이아웃 */
+    column-count: 3;
     column-gap: 4px;
+    padding: 0;
 }
 
 .reels-grid > div {
@@ -3243,17 +3244,18 @@ body.modal-open {
         display: none;
     }
     
-    /* 릴스 반응형 */
+    /* 모바일 */
     @media (max-width: 768px) {
         .reels-grid {
-            column-count: 2;  /* 모바일은 2열 */
+            column-count: 2;
             column-gap: 2px;
         }
     }
 
+    /* 큰 화면 */
     @media (min-width: 1200px) {
         .reels-grid {
-            column-count: 4;  /* 큰 화면은 4열 */
+            column-count: 4;
         }
     }
     

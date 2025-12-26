@@ -4812,11 +4812,11 @@ async function loadReels() {
             var thumbnailUrl = reel.thumbnail_url || firstMedia.url;
             var isVideo = firstMedia.type === 'video';
             
-            // ⭐ 랜덤 높이 (인스타 스타일)
-            var heights = ['250px', '350px', '450px'];
-            var randomHeight = heights[i % 3];
+            // ⭐ 랜덤으로 큰거/작은거 결정 (30% 확률로 큰거)
+            var isLarge = Math.random() < 0.3;
+            var height = isLarge ? '400px' : '198px';
             
-            html += '<div onclick="openReelViewer(' + i + ')" style="height: ' + randomHeight + '; background: #000; border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">';
+            html += '<div onclick="openReelViewer(' + i + ')" style="height: ' + height + '; background: #000; border-radius: 0; cursor: pointer; overflow: hidden; position: relative;">';
             
             if (thumbnailUrl) {
                 html += '<img src="' + thumbnailUrl + '" style="width: 100%; height: 100%; object-fit: cover;">';
