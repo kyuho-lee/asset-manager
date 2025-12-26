@@ -3689,12 +3689,16 @@ async function toggleLike(postId) {
 async function openCommentModal(postId) {
     currentCommentPostId = postId;
     
-    // ⭐ 이전 댓글 내용 먼저 지우기
     var container = document.getElementById('commentList');
     container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">로딩 중...</p>';
     
     document.getElementById('commentModal').classList.add('active');
     document.body.classList.add('modal-open');
+    
+    // ⭐ 멘션 이벤트 리스너 추가
+    var commentInput = document.getElementById('commentInput');
+    commentInput.removeEventListener('input', handleMentionInput);
+    commentInput.addEventListener('input', handleMentionInput);
     
     await loadComments(postId);
 }
@@ -5775,8 +5779,9 @@ function openReplyInput(commentId) {
         <div id="replyInputArea_${commentId}" style="margin-left: 45px; margin-top: 10px; padding: 12px; background: #f8f9fa; border-radius: 8px;">
             <div style="display: flex; gap: 10px;">
                 <input type="text" id="replyInput_${commentId}" placeholder="답글을 입력하세요..." 
-                       style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;"
-                       onkeypress="if(event.key === 'Enter') submitReply(${commentId})">
+                    style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;"
+                    oninput="handleMentionInput(event)"
+                    onkeypress="if(event.key === 'Enter') submitReply(${commentId})">
                 <button onclick="submitReply(${commentId})" 
                         style="padding: 10px 20px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">
                     작성
@@ -5801,7 +5806,9 @@ function openReplyInput(commentId) {
             elem.insertAdjacentHTML('beforeend', replyInputHtml);
             // 입력창에 포커스
             setTimeout(function() {
-                document.getElementById('replyInput_' + commentId).focus();
+                var replyInput = document.getElementById('replyInput_' + commentId);
+                replyInput.focus();
+                replyInput.addEventListener('input', handleMentionInput);
             }, 100);
             break;
         }
@@ -5846,4 +5853,138 @@ async function submitReply(parentCommentId) {
         console.error('답글 작성 오류:', error);
         alert('답글 작성 중 오류가 발생했습니다.');
     }
+}
+
+
+// ============ @멘션 기능 ============
+
+var mentionSearchTimeout = null;
+var currentMentionInput = null;
+
+// 멘션 드롭다운 생성
+function createMentionDropdown(inputElement) {
+    // 기존 드롭다운 제거
+    removeMentionDropdown();
+    
+    var dropdown = document.createElement('div');
+    dropdown.id = 'mentionDropdown';
+    dropdown.style.cssText = `
+        position: absolute;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    `;
+    
+    // input 위치 기준으로 드롭다운 배치
+    var rect = inputElement.getBoundingClientRect();
+    dropdown.style.top = (rect.bottom + window.scrollY) + 'px';
+    dropdown.style.left = rect.left + 'px';
+    dropdown.style.width = rect.width + 'px';
+    
+    document.body.appendChild(dropdown);
+    currentMentionInput = inputElement;
+    
+    return dropdown;
+}
+
+// 멘션 드롭다운 제거
+function removeMentionDropdown() {
+    var dropdown = document.getElementById('mentionDropdown');
+    if (dropdown) {
+        dropdown.remove();
+    }
+    currentMentionInput = null;
+}
+
+// 사용자 검색
+async function searchUsersForMention(query, inputElement) {
+    if (query.length < 1) {
+        removeMentionDropdown();
+        return;
+    }
+    
+    try {
+        var response = await apiRequest('/users/search?q=' + encodeURIComponent(query), {
+            method: 'GET'
+        });
+        
+        if (response.success && response.data.length > 0) {
+            showMentionResults(response.data, inputElement);
+        } else {
+            removeMentionDropdown();
+        }
+    } catch (error) {
+        console.error('사용자 검색 오류:', error);
+        removeMentionDropdown();
+    }
+}
+
+// 검색 결과 표시
+function showMentionResults(users, inputElement) {
+    var dropdown = document.getElementById('mentionDropdown') || createMentionDropdown(inputElement);
+    
+    var html = '';
+    for (var i = 0; i < users.length; i++) {
+        var user = users[i];
+        html += '<div onclick="selectMention(\'' + user.name + '\')" style="padding: 10px; cursor: pointer; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #f0f0f0;">';
+        html += '<div style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">';
+        html += user.profile_image ? '<img src="' + user.profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">' : user.name.charAt(0).toUpperCase();
+        html += '</div>';
+        html += '<div>';
+        html += '<div style="font-weight: 600; font-size: 14px;">' + user.name + '</div>';
+        html += '<div style="color: #999; font-size: 12px;">' + user.email + '</div>';
+        html += '</div>';
+        html += '</div>';
+    }
+    
+    dropdown.innerHTML = html;
+    dropdown.style.display = 'block';
+}
+
+// 멘션 선택
+function selectMention(userName) {
+    if (!currentMentionInput) return;
+    
+    var value = currentMentionInput.value;
+    var lastAtIndex = value.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+        // @ 이후 텍스트를 선택한 사용자명으로 교체
+        var newValue = value.substring(0, lastAtIndex) + '@' + userName + ' ';
+        currentMentionInput.value = newValue;
+        currentMentionInput.focus();
+    }
+    
+    removeMentionDropdown();
+}
+
+// 입력 이벤트 핸들러
+function handleMentionInput(event) {
+    var input = event.target;
+    var value = input.value;
+    var cursorPos = input.selectionStart;
+    
+    // 커서 이전 텍스트에서 마지막 @ 찾기
+    var textBeforeCursor = value.substring(0, cursorPos);
+    var lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+        // @ 이후 공백이 없는지 확인
+        var textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+        if (textAfterAt.indexOf(' ') === -1) {
+            // @ 이후 텍스트로 검색
+            clearTimeout(mentionSearchTimeout);
+            mentionSearchTimeout = setTimeout(function() {
+                searchUsersForMention(textAfterAt, input);
+            }, 300);
+            return;
+        }
+    }
+    
+    removeMentionDropdown();
 }

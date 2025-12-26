@@ -167,6 +167,36 @@ router.put('/:id/permissions', async (req, res) => {
     }
 });
 
+// 사용자 검색 (멘션용)
+router.get('/search', async (req, res) => {
+    try {
+        const { q } = req.query;
+        
+        if (!q || q.trim().length === 0) {
+            return res.json({ success: true, data: [] });
+        }
+        
+        const searchTerm = '%' + q.trim() + '%';
+        
+        const [users] = await db.query(`
+            SELECT 
+                u.id,
+                u.name,
+                u.email,
+                pr.profile_image
+            FROM users u
+            LEFT JOIN profiles pr ON u.id = pr.user_id
+            WHERE u.name LIKE ? OR u.email LIKE ?
+            LIMIT 10
+        `, [searchTerm, searchTerm]);
+        
+        res.json({ success: true, data: users });
+    } catch (error) {
+        console.error('사용자 검색 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    }
+});
+
 // 사용자 삭제
 router.delete('/:id', async (req, res) => {
     try {
