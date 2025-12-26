@@ -2927,9 +2927,15 @@ body.modal-open {
 }
 
 .reels-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
+    column-count: 3;  /* Masonry 레이아웃 */
+    column-gap: 4px;
+}
+
+.reels-grid > div {
+    break-inside: avoid;
+    margin-bottom: 4px;
+    display: inline-block;
+    width: 100%;
 }
 
 .reel-item {
@@ -3238,9 +3244,17 @@ body.modal-open {
     }
     
     /* 릴스 반응형 */
-    .reels-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 2px;
+    @media (max-width: 768px) {
+        .reels-grid {
+            column-count: 2;  /* 모바일은 2열 */
+            column-gap: 2px;
+        }
+    }
+
+    @media (min-width: 1200px) {
+        .reels-grid {
+            column-count: 4;  /* 큰 화면은 4열 */
+        }
     }
     
     .reel-item {
