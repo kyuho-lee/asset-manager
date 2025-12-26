@@ -3730,6 +3730,7 @@ async function loadComments(postId) {
             html += '<span style="font-weight: 600;">' + comment.user_name + '</span>';
             html += '<span style="color: #999; font-size: 12px; margin-left: 10px;">' + timeAgo + '</span>';
             html += '<p style="margin: 5px 0 0 0; line-height: 1.5;">' + comment.content + '</p>';
+            html += '<button onclick="openReplyInput(' + comment.id + ')" style="background: none; border: none; color: #0066cc; cursor: pointer; font-size: 12px; margin-top: 5px; padding: 0;">답글</button>';
             html += '</div>';
             html += '</div>';
             
@@ -5748,4 +5749,92 @@ function displayPostImagePreviews() {
     });
 }
 
-console.log('✅ 여러 장 이미지 업로드 기능 로드 완료');
+console.log('✅ 여러 장 이미지 업로드 기능 로드 완료');// ============ 대댓글 UI 기능 ============
+
+// 전역 변수
+var currentReplyToCommentId = null;
+
+// 답글 입력창 열기
+function openReplyInput(commentId) {
+    // 기존 답글 입력창 닫기
+    closeReplyInput();
+    
+    currentReplyToCommentId = commentId;
+    
+    // 답글 입력창 HTML
+    var replyInputHtml = `
+        <div id="replyInputArea_${commentId}" style="margin-left: 45px; margin-top: 10px; padding: 12px; background: #f8f9fa; border-radius: 8px;">
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="replyInput_${commentId}" placeholder="답글을 입력하세요..." 
+                       style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;"
+                       onkeypress="if(event.key === 'Enter') submitReply(${commentId})">
+                <button onclick="submitReply(${commentId})" 
+                        style="padding: 10px 20px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">
+                    작성
+                </button>
+                <button onclick="closeReplyInput()" 
+                        style="padding: 10px 16px; background: #e5e7eb; color: #666; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                    취소
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // 해당 댓글 요소 찾기
+    var commentElements = document.querySelectorAll('#commentList > div');
+    for (var i = 0; i < commentElements.length; i++) {
+        var elem = commentElements[i];
+        var deleteBtn = elem.querySelector('button[onclick*="deleteComment(' + commentId + ')"]');
+        var replyBtn = elem.querySelector('button[onclick*="openReplyInput(' + commentId + ')"]');
+        
+        if (deleteBtn || replyBtn) {
+            // 답글 입력창 추가
+            elem.insertAdjacentHTML('beforeend', replyInputHtml);
+            // 입력창에 포커스
+            setTimeout(function() {
+                document.getElementById('replyInput_' + commentId).focus();
+            }, 100);
+            break;
+        }
+    }
+}
+
+// 답글 입력창 닫기
+function closeReplyInput() {
+    if (currentReplyToCommentId) {
+        var replyInputArea = document.getElementById('replyInputArea_' + currentReplyToCommentId);
+        if (replyInputArea) {
+            replyInputArea.remove();
+        }
+        currentReplyToCommentId = null;
+    }
+}
+
+// 답글 작성
+async function submitReply(parentCommentId) {
+    var input = document.getElementById('replyInput_' + parentCommentId);
+    var content = input.value.trim();
+    
+    if (!content || !currentCommentPostId) return;
+    
+    try {
+        var response = await apiRequest('/comments', {
+            method: 'POST',
+            body: JSON.stringify({
+                post_id: currentCommentPostId,
+                content: content,
+                parent_comment_id: parentCommentId
+            })
+        });
+        
+        if (response.success) {
+            closeReplyInput();
+            await loadComments(currentCommentPostId);
+        } else {
+            alert('답글 작성 실패: ' + response.message);
+        }
+    } catch (error) {
+        console.error('답글 작성 오류:', error);
+        alert('답글 작성 중 오류가 발생했습니다.');
+    }
+}
