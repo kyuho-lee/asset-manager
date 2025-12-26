@@ -6108,10 +6108,13 @@ function cancelEditComment() {
 
 // 댓글 좋아요 토글
 async function toggleCommentLike(commentId) {
+    console.log('🔥 toggleCommentLike 호출됨! commentId:', commentId);  // ⭐ 추가
     try {
+        console.log('📤 API 요청 시작:', '/comments/' + commentId + '/like');  // ⭐ 추가
         var response = await apiRequest('/comments/' + commentId + '/like', {
             method: 'POST'
         });
+        console.log('📥 API 응답:', response);  // ⭐ 추가
         
         if (response.success) {
             // Socket.io가 자동으로 업데이트하므로 새로고침 불필요!
