@@ -3494,7 +3494,6 @@ async function loadPosts(reset) {
     feedLoading = false;
 }
 
-// 게시물 카드 렌더링
 function renderPostCard(post) {
     var timeAgo = getTimeAgo(new Date(post.created_at));
     var userInitial = post.user_name ? post.user_name.charAt(0).toUpperCase() : 'U';
@@ -3506,19 +3505,15 @@ function renderPostCard(post) {
     // 헤더
     html += '<div style="padding: 15px; display: flex; justify-content: space-between; align-items: center;">';
     html += '<div style="display: flex; align-items: center; gap: 12px;">';
-    
     html += '<div style="width: 45px; height: 45px; border-radius: 50%; overflow: hidden; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 18px;">';
     html += post.user_profile_image ? '<img src="' + post.user_profile_image + '" style="width: 100%; height: 100%; object-fit: cover;">' : userInitial;
     html += '</div>';
-
-
     html += '<div>';
     html += '<div style="font-weight: 600;">' + post.user_name + '</div>';
     html += '<div style="font-size: 12px; color: #999;">' + timeAgo + '</div>';
     html += '</div>';
     html += '</div>';
     
-    // 삭제 버튼 (본인 게시물만) 또는 팔로우 버튼
     if (isMyPost) {
         html += '<button onclick="deletePost(' + post.id + ')" style="background: none; border: none; color: #999; cursor: pointer; font-size: 18px;" title="삭제">🗑️</button>';
     } else {
@@ -3526,15 +3521,38 @@ function renderPostCard(post) {
     }
     html += '</div>';
     
-    // 여러 장 이미지/영상
-    if (post.media_urls && post.media_urls.length > 0) {
+    // ⭐ 여러 장 이미지/영상 처리
+    var mediaUrls = [];
+    
+    // media_urls 파싱 (JSON 문자열일 수 있음)
+    if (post.media_urls) {
+        if (typeof post.media_urls === 'string') {
+            try {
+                mediaUrls = JSON.parse(post.media_urls);
+            } catch (e) {
+                console.error('media_urls 파싱 오류:', e, post.media_urls);
+            }
+        } else if (Array.isArray(post.media_urls)) {
+            mediaUrls = post.media_urls;
+        }
+    }
+    
+    // 기존 image_url도 체크 (하위 호환성)
+    if (mediaUrls.length === 0 && post.image_url) {
+        mediaUrls = [post.image_url];
+    }
+    
+    console.log('Post ID:', post.id, 'mediaUrls:', mediaUrls); // ⭐ 디버깅용
+    
+    // 미디어 표시
+    if (mediaUrls.length > 0) {
         html += '<div style="position: relative; width: 100%; max-height: 500px; overflow: hidden; background: #000;">';
         
-        if (post.media_urls.length === 1) {
-            // 단일 이미지/영상
-            var mediaUrl = post.media_urls[0].startsWith('http') ? post.media_urls[0] : API_BASE_URL.replace('/api', '') + post.media_urls[0];
+        if (mediaUrls.length === 1) {
+            // 단일 미디어
+            var mediaUrl = mediaUrls[0];
             
-            if (post.media_urls[0].includes('.mp4') || post.media_urls[0].includes('video')) {
+            if (mediaUrl.includes('.mp4') || mediaUrl.includes('video')) {
                 html += '<video src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain;" controls></video>';
             } else {
                 html += '<img src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain; cursor: pointer;" onclick="openImageModal(this.src)">';
@@ -3542,28 +3560,25 @@ function renderPostCard(post) {
         } else {
             // 여러 장 슬라이드
             html += '<div id="post-slider-' + post.id + '" class="post-media-slider" style="position: relative;">';
-            html += '<div class="slider-wrapper" style="display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;">';
+            html += '<div class="slider-wrapper" style="display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -ms-overflow-style: none;">';
             
-            post.media_urls.forEach(function(url, index) {
-                var mediaUrl = url.startsWith('http') ? url : API_BASE_URL.replace('/api', '') + url;
+            for (var i = 0; i < mediaUrls.length; i++) {
+                var mediaUrl = mediaUrls[i];
                 html += '<div style="min-width: 100%; scroll-snap-align: start; display: flex; justify-content: center; align-items: center; background: #000;">';
                 
-                if (url.includes('.mp4') || url.includes('video')) {
+                if (mediaUrl.includes('.mp4') || mediaUrl.includes('video')) {
                     html += '<video src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain;" controls></video>';
                 } else {
                     html += '<img src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain; cursor: pointer;" onclick="openImageModal(this.src)">';
                 }
                 
                 html += '</div>';
-            });
+            }
             
             html += '</div>';
+            html += '<div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px;">1/' + mediaUrls.length + '</div>';
             
-            // 인디케이터
-            html += '<div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px;">1/' + post.media_urls.length + '</div>';
-            
-            // 이전/다음 버튼
-            if (post.media_urls.length > 1) {
+            if (mediaUrls.length > 1) {
                 html += '<button onclick="slidePostMedia(' + post.id + ', -1)" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 18px;">‹</button>';
                 html += '<button onclick="slidePostMedia(' + post.id + ', 1)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 18px;">›</button>';
             }
@@ -3572,14 +3587,8 @@ function renderPostCard(post) {
         }
         
         html += '</div>';
-    } else if (post.image_url) {
-        // 기존 이미지 (하위 호환성)
-        var imgSrc = post.image_url.startsWith('http') ? post.image_url : API_BASE_URL.replace('/api', '') + post.image_url;
-        html += '<div style="width: 100%; max-height: 500px; overflow: hidden;">';
-        html += '<img src="' + imgSrc + '" style="width: 100%; object-fit: cover; cursor: pointer;" onclick="openImageModal(this.src)">';
-        html += '</div>';
     }
-
+    
     // 내용
     if (post.content) {
         html += '<div style="padding: 15px;">';
