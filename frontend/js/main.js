@@ -4913,16 +4913,10 @@ async function uploadReel() {
     try {
         var caption = document.getElementById('reelCaptionInput').value.trim();
         
-        // ⭐ FormData 사용 (피드처럼)
         var formData = new FormData();
         formData.append('caption', caption);
+        formData.append('media', reelMediaFiles[0].file);
         
-        // 여러 장 미디어 추가
-        for (var i = 0; i < reelMediaFiles.length; i++) {
-            formData.append('media', reelMediaFiles[i].file);
-        }
-        
-        // ⭐ 토큰 추가
         var token = localStorage.getItem('authToken');
         if (!token) {
             alert('로그인이 필요합니다.');
@@ -5132,6 +5126,57 @@ function shareReel() {
     
     toggleReelMenu();
 }
+
+// ========== 릴스 업로드 (1개만) ==========
+
+var reelMediaFiles = [];
+
+function previewReelMedia(event) {
+    var files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    // 1개만 허용
+    var file = files[0];
+    var type = file.type.startsWith('video') ? 'video' : 'image';
+    
+    reelMediaFiles = [{
+        file: file,
+        type: type,
+        url: URL.createObjectURL(file)
+    }];
+    
+    // 미리보기 표시
+    document.getElementById('reelMediaLabel').style.display = 'none';
+    document.getElementById('reelPreviewContainer').style.display = 'block';
+    
+    renderReelPreview();
+}
+
+function renderReelPreview() {
+    var slider = document.getElementById('reelPreviewSlider');
+    var indicator = document.getElementById('reelPreviewIndicator');
+    var media = reelMediaFiles[0];
+    
+    // 미디어 표시
+    if (media.type === 'video') {
+        slider.innerHTML = '<video src="' + media.url + '" style="max-width: 100%; max-height: 100%; border-radius: 8px;" controls autoplay muted></video>';
+    } else {
+        slider.innerHTML = '<img src="' + media.url + '" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;">';
+    }
+    
+    // 인디케이터 숨기기 (1개만)
+    indicator.style.display = 'none';
+    document.getElementById('reelPrevBtn').style.display = 'none';
+    document.getElementById('reelNextBtn').style.display = 'none';
+}
+
+function resetReelMedia() {
+    reelMediaFiles = [];
+    document.getElementById('reelMediaInput').value = '';
+    document.getElementById('reelMediaLabel').style.display = 'flex';
+    document.getElementById('reelPreviewContainer').style.display = 'none';
+}
+
 
 // 스와이프 이벤트 초기화
 var reelSwipeStartX = 0;
