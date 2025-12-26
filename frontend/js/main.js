@@ -5815,94 +5815,15 @@ function updateSlideIndicator(postId, slider) {
     indicator.textContent = (currentIndex + 1) + '/' + totalSlides;
 }
 
-// ⭐ 스와이프 기능 초기화
-function initPostSwipe(postId) {
-    var slider = document.querySelector('#post-slider-' + postId + ' .slider-wrapper');
-    if (!slider) return;
-    
-    var startX = 0;
-    var startY = 0;
-    var isSwiping = false;
-    
-    // 터치 시작
-    slider.addEventListener('touchstart', function(e) {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        isSwiping = true;
-    });
-    
-    // 터치 이동 (기본 스크롤 방지)
-    slider.addEventListener('touchmove', function(e) {
-        if (!isSwiping) return;
-        var diffX = Math.abs(e.touches[0].clientX - startX);
-        var diffY = Math.abs(e.touches[0].clientY - startY);
-        
-        // 가로 스와이프가 세로보다 크면 기본 스크롤 방지
-        if (diffX > diffY) {
-            e.preventDefault();
-        }
-    }, { passive: false });
-    
-    // 터치 종료
-    slider.addEventListener('touchend', function(e) {
-        if (!isSwiping) return;
-        isSwiping = false;
-        
-        var endX = e.changedTouches[0].clientX;
-        var endY = e.changedTouches[0].clientY;
-        var diffX = startX - endX;
-        var diffY = startY - endY;
-        
-        // 가로 스와이프가 세로보다 클 때만
-        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
-            slidePostMedia(postId, diffX > 0 ? 1 : -1);
-        }
-    });
-    
-    // 마우스 드래그 (데스크톱)
-    var isDragging = false;
-    var dragStartX = 0;
-    
-    slider.addEventListener('mousedown', function(e) {
-        isDragging = true;
-        dragStartX = e.clientX;
-        slider.style.cursor = 'grabbing';
-    });
-    
-    slider.addEventListener('mousemove', function(e) {
-        if (!isDragging) return;
-        e.preventDefault();
-    });
-    
-    slider.addEventListener('mouseup', function(e) {
-        if (!isDragging) return;
-        isDragging = false;
-        slider.style.cursor = 'grab';
-        
-        var diffX = dragStartX - e.clientX;
-        if (Math.abs(diffX) > 50) {
-            slidePostMedia(postId, diffX > 0 ? 1 : -1);
-        }
-    });
-    
-    slider.addEventListener('mouseleave', function() {
-        isDragging = false;
-        slider.style.cursor = 'grab';
-    });
-    
-    // 커서 스타일
-    slider.style.cursor = 'grab';
-}
-
-console.log('✅ 피드 슬라이드 기능 (스와이프) 로드 완료');
-
 // ========== 피드 슬라이드 (스와이프) ==========
 function initPostSwipe(postId) {
     var slider = document.querySelector('#post-slider-' + postId + ' .slider-wrapper');
     if (!slider) return;
     
     var startX = 0;
+    var isDragging = false;
     
+    // 모바일 터치
     slider.addEventListener('touchstart', function(e) {
         startX = e.touches[0].clientX;
     });
@@ -5916,6 +5837,38 @@ function initPostSwipe(postId) {
         }
     });
     
+    // 데스크톱 마우스 드래그
+    slider.addEventListener('mousedown', function(e) {
+        isDragging = true;
+        startX = e.clientX;
+        slider.style.cursor = 'grabbing';
+        e.preventDefault();
+    });
+    
+    slider.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+    });
+    
+    slider.addEventListener('mouseup', function(e) {
+        if (!isDragging) return;
+        isDragging = false;
+        slider.style.cursor = 'grab';
+        
+        var diffX = startX - e.clientX;
+        if (Math.abs(diffX) > 50) {
+            var slideWidth = slider.offsetWidth;
+            var newScroll = slider.scrollLeft + (slideWidth * (diffX > 0 ? 1 : -1));
+            slider.scrollTo({ left: newScroll, behavior: 'smooth' });
+        }
+    });
+    
+    slider.addEventListener('mouseleave', function() {
+        isDragging = false;
+        slider.style.cursor = 'grab';
+    });
+    
+    // 스크롤 시 점 인디케이터 업데이트
     slider.addEventListener('scroll', function() {
         var indicators = document.querySelectorAll('#post-indicator-' + postId + ' .indicator-dot');
         var currentIndex = Math.round(slider.scrollLeft / slider.offsetWidth);
@@ -5926,3 +5879,5 @@ function initPostSwipe(postId) {
     
     slider.style.cursor = 'grab';
 }
+
+console.log('✅ 피드 슬라이드 기능 (스와이프) 로드 완료');
