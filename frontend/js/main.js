@@ -3688,6 +3688,11 @@ async function toggleLike(postId) {
 // 댓글 모달 열기
 async function openCommentModal(postId) {
     currentCommentPostId = postId;
+    
+    // ⭐ 이전 댓글 내용 먼저 지우기
+    var container = document.getElementById('commentList');
+    container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">로딩 중...</p>';
+    
     document.getElementById('commentModal').classList.add('active');
     document.body.classList.add('modal-open');
     
@@ -3699,6 +3704,10 @@ function closeCommentModal() {
     document.getElementById('commentModal').classList.remove('active');
     document.body.classList.remove('modal-open');
     currentCommentPostId = null;
+    
+    // ⭐ 댓글 내용 지우기
+    var container = document.getElementById('commentList');
+    container.innerHTML = '';
 }
 
 // 댓글 로드
