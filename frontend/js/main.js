@@ -4282,6 +4282,28 @@ function connectSocket() {
         }
     });
 
+    socket.on('newStory', function(data) {
+    console.log('📸 새 스토리:', data);
+    
+        var feedPage = document.getElementById('feedPage');
+        if (feedPage && feedPage.classList.contains('active')) {
+            loadStories();
+        }
+        
+        if (currentUser && data.userId !== currentUser.id) {
+            showNotificationToast(data.userName + '님이 새 스토리를 올렸습니다 📸');
+        }
+    });
+
+    socket.on('deleteStory', function(data) {
+        console.log('🗑️ 스토리 삭제:', data);
+        
+        var feedPage = document.getElementById('feedPage');
+        if (feedPage && feedPage.classList.contains('active')) {
+            loadStories();
+        }
+    });
+
 }
 
 // 알림 목록 로드

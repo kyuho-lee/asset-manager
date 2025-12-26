@@ -65,6 +65,26 @@ router.post('/', async (req, res) => {
             [userId, image_url, text_content || null]
         );
         
+    // ⭐ Socket.IO 브로드캐스트
+    const io = req.app.get('io');
+    if (io) {
+        const [user] = await db.query(`
+            SELECT u.name, pr.profile_image
+            FROM users u
+            LEFT JOIN profiles pr ON u.id = pr.user_id
+            WHERE u.id = ?
+        `, [userId]);
+        
+        io.emit('newStory', {
+            storyId: result.insertId,
+            userId: userId,
+            userName: user[0].name,
+            userProfileImage: user[0].profile_image,
+            imageUrl: image_url,
+            textContent: text_content
+        });
+    }
+
         res.json({ success: true, message: '스토리가 등록되었습니다.', storyId: result.insertId });
     } catch (error) {
         console.error('스토리 등록 오류:', error);
@@ -124,6 +144,16 @@ router.delete('/:storyId', async (req, res) => {
         
         await db.query('DELETE FROM stories WHERE id = ?', [storyId]);
         
+
+        // ⭐ Socket.IO 브로드캐스트
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('deleteStory', {
+                storyId: storyId,
+                userId: userId
+            });
+        }
+
         res.json({ success: true, message: '스토리가 삭제되었습니다.' });
     } catch (error) {
         console.error('스토리 삭제 오류:', error);
