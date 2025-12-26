@@ -3067,7 +3067,6 @@ async function loadMessages(roomId) {
     }
 }
 
-// 이미지 크게 보기 (다운로드 버튼 포함)
 function openImageModal(src) {
     var modal = document.createElement('div');
     modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000;';
@@ -3081,16 +3080,7 @@ function openImageModal(src) {
     // 이미지
     var img = document.createElement('img');
     img.src = src;
-    img.style.cssText = 'max-width: 85%; max-height: 75%; border-radius: 10px;';
-    
-    // 다운로드 버튼
-    var downloadBtn = document.createElement('button');
-    downloadBtn.innerHTML = '📥 다운로드';
-    downloadBtn.style.cssText = 'margin-top: 20px; padding: 12px 30px; background: #0066cc; color: white; border: none; border-radius: 25px; cursor: pointer; font-size: 16px; font-weight: 600;';
-    downloadBtn.onclick = function(e) {
-        e.stopPropagation();
-        downloadImage(src);
-    };
+    img.style.cssText = 'max-width: 90%; max-height: 90%; border-radius: 10px;';
     
     // 배경 클릭 시 닫기
     modal.onclick = function(e) {
@@ -3101,38 +3091,10 @@ function openImageModal(src) {
     
     modal.appendChild(closeBtn);
     modal.appendChild(img);
-    modal.appendChild(downloadBtn);
     document.body.appendChild(modal);
 }
 
-// 이미지 다운로드 (fetch 사용)
-async function downloadImage(src) {
-    try {
-        // 이미지를 blob으로 가져오기
-        var response = await fetch(src);
-        var blob = await response.blob();
-        
-        // blob URL 생성
-        var blobUrl = window.URL.createObjectURL(blob);
-        
-        // 다운로드 링크 생성
-        var link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = 'chat-image-' + Date.now() + '.jpg';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        // blob URL 해제
-        window.URL.revokeObjectURL(blobUrl);
-        
-        alert('이미지가 다운로드되었습니다!');
-    } catch (error) {
-        console.error('다운로드 오류:', error);
-        // 실패 시 새 탭에서 열기
-        window.open(src, '_blank');
-    }
-}
+
 
 // 메시지 전송 (이미지 포함)
 async function sendMessage() {
