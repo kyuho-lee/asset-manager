@@ -324,10 +324,18 @@ router.post('/:postId/like', async (req, res) => {
             [postId]
         );
         
+        const io = req.app.get('io');
+        io.emit('likeUpdate', {
+            postId: parseInt(postId),
+            likeCount: likeCount[0].count,
+            liked: liked,
+            userId: userId
+        });
+
         res.json({ 
             success: true, 
             liked: liked,
-            likeCount: likeCount[0].count,  // ⭐ 좋아요 개수 추가
+            likeCount: likeCount[0].count,
             message: liked ? '좋아요를 눌렀습니다.' : '좋아요를 취소했습니다.'
         });
     } catch (error) {

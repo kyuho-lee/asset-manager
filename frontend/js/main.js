@@ -3718,6 +3718,32 @@ async function toggleLike(postId) {
     }
 }
 
+// ⭐ 이 함수를 통째로 추가!
+function updateLikeUI(postId, likeCount, liked, likedUserId) {
+    // 좋아요 개수 업데이트 (모든 사용자)
+    var likeCountEl = document.getElementById('like-count-' + postId);
+    if (likeCountEl) {
+        likeCountEl.textContent = likeCount;
+    }
+    
+    // 하트 아이콘 변경 (본인만)
+    if (currentUser && likedUserId === currentUser.id) {
+        var postCard = document.getElementById('post-' + postId);
+        if (postCard) {
+            var likeBtn = postCard.querySelector('button[onclick*="toggleLike(' + postId + ')"]');
+            if (likeBtn) {
+                if (liked) {
+                    likeBtn.innerHTML = '❤️ <span id="like-count-' + postId + '">' + likeCount + '</span>';
+                    likeBtn.style.color = '#ff4444';
+                } else {
+                    likeBtn.innerHTML = '🤍 <span id="like-count-' + postId + '">' + likeCount + '</span>';
+                    likeBtn.style.color = '#666';
+                }
+            }
+        }
+    }
+}
+
 
 // 댓글 모달 열기
 async function openCommentModal(postId) {
@@ -4206,6 +4232,11 @@ function connectSocket() {
         console.log('🔔 새 알림:', data);
         loadNotifications();
         showNotificationToast(data.message);
+    });
+
+    socket.on('likeUpdate', function(data) {
+        console.log('❤️ 좋아요 업데이트:', data);
+        updateLikeUI(data.postId, data.likeCount, data.liked, data.userId);
     });
     
     socket.on('disconnect', function() {
