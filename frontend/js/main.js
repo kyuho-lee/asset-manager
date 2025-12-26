@@ -3521,10 +3521,9 @@ function renderPostCard(post) {
     }
     html += '</div>';
     
-    // ⭐ 여러 장 이미지/영상 처리
+    // 여러 장 이미지/영상 처리
     var mediaUrls = [];
     
-    // media_urls 파싱 (JSON 문자열일 수 있음)
     if (post.media_urls) {
         if (typeof post.media_urls === 'string') {
             try {
@@ -3537,28 +3536,23 @@ function renderPostCard(post) {
         }
     }
     
-    // 기존 image_url도 체크 (하위 호환성)
     if (mediaUrls.length === 0 && post.image_url) {
         mediaUrls = [post.image_url];
     }
-    
-    console.log('Post ID:', post.id, 'mediaUrls:', mediaUrls); // ⭐ 디버깅용
     
     // 미디어 표시
     if (mediaUrls.length > 0) {
         html += '<div style="position: relative; width: 100%; max-height: 500px; overflow: hidden; background: #000;">';
         
         if (mediaUrls.length === 1) {
-            // 단일 미디어
             var mediaUrl = mediaUrls[0];
-            
             if (mediaUrl.includes('.mp4') || mediaUrl.includes('video')) {
                 html += '<video src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain;" controls></video>';
             } else {
                 html += '<img src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain; cursor: pointer;" onclick="openImageModal(this.src)">';
             }
         } else {
-            // 여러 장 슬라이드
+            // 여러 장 슬라이드 (스와이프)
             html += '<div id="post-slider-' + post.id + '" class="post-media-slider" style="position: relative;">';
             html += '<div class="slider-wrapper" style="display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -ms-overflow-style: none;">';
             
@@ -3576,12 +3570,13 @@ function renderPostCard(post) {
             }
             
             html += '</div>';
-            html += '<div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px;">1/' + mediaUrls.length + '</div>';
             
-            if (mediaUrls.length > 1) {
-                html += '<button onclick="slidePostMedia(' + post.id + ', -1)" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 18px;">‹</button>';
-                html += '<button onclick="slidePostMedia(' + post.id + ', 1)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 18px;">›</button>';
+            // 점 인디케이터
+            html += '<div id="post-indicator-' + post.id + '" style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 10;">';
+            for (var i = 0; i < mediaUrls.length; i++) {
+                html += '<div class="indicator-dot" style="width: 6px; height: 6px; border-radius: 50%; background: ' + (i === 0 ? 'white' : 'rgba(255,255,255,0.5)') + '; transition: all 0.3s;"></div>';
             }
+            html += '</div>';
             
             html += '</div>';
         }
@@ -3607,6 +3602,13 @@ function renderPostCard(post) {
     html += '</div>';
     
     html += '</div>';
+    
+    // 스와이프 초기화
+    if (mediaUrls.length > 1) {
+        setTimeout(function() {
+            initPostSwipe(post.id);
+        }, 100);
+    }
     
     return html;
 }
@@ -5781,3 +5783,146 @@ function displayPostImagePreviews() {
 }
 
 console.log('✅ 여러 장 이미지 업로드 기능 로드 완료');
+
+
+// ========== 피드 이미지 슬라이드 기능 (스와이프 방식) ==========
+
+function slidePostMedia(postId, direction) {
+    var slider = document.querySelector('#post-slider-' + postId + ' .slider-wrapper');
+    if (!slider) return;
+    
+    var slideWidth = slider.offsetWidth;
+    var newScroll = slider.scrollLeft + (slideWidth * direction);
+    
+    slider.scrollTo({ 
+        left: newScroll, 
+        behavior: 'smooth' 
+    });
+    
+    setTimeout(function() {
+        updateSlideIndicator(postId, slider);
+    }, 300);
+}
+
+function updateSlideIndicator(postId, slider) {
+    var indicator = document.querySelector('#post-slider-' + postId + ' div[style*="position: absolute; bottom: 10px"]');
+    if (!indicator) return;
+    
+    var slideWidth = slider.offsetWidth;
+    var currentIndex = Math.round(slider.scrollLeft / slideWidth);
+    var totalSlides = slider.children.length;
+    
+    indicator.textContent = (currentIndex + 1) + '/' + totalSlides;
+}
+
+// ⭐ 스와이프 기능 초기화
+function initPostSwipe(postId) {
+    var slider = document.querySelector('#post-slider-' + postId + ' .slider-wrapper');
+    if (!slider) return;
+    
+    var startX = 0;
+    var startY = 0;
+    var isSwiping = false;
+    
+    // 터치 시작
+    slider.addEventListener('touchstart', function(e) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        isSwiping = true;
+    });
+    
+    // 터치 이동 (기본 스크롤 방지)
+    slider.addEventListener('touchmove', function(e) {
+        if (!isSwiping) return;
+        var diffX = Math.abs(e.touches[0].clientX - startX);
+        var diffY = Math.abs(e.touches[0].clientY - startY);
+        
+        // 가로 스와이프가 세로보다 크면 기본 스크롤 방지
+        if (diffX > diffY) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+    
+    // 터치 종료
+    slider.addEventListener('touchend', function(e) {
+        if (!isSwiping) return;
+        isSwiping = false;
+        
+        var endX = e.changedTouches[0].clientX;
+        var endY = e.changedTouches[0].clientY;
+        var diffX = startX - endX;
+        var diffY = startY - endY;
+        
+        // 가로 스와이프가 세로보다 클 때만
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+            slidePostMedia(postId, diffX > 0 ? 1 : -1);
+        }
+    });
+    
+    // 마우스 드래그 (데스크톱)
+    var isDragging = false;
+    var dragStartX = 0;
+    
+    slider.addEventListener('mousedown', function(e) {
+        isDragging = true;
+        dragStartX = e.clientX;
+        slider.style.cursor = 'grabbing';
+    });
+    
+    slider.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+    });
+    
+    slider.addEventListener('mouseup', function(e) {
+        if (!isDragging) return;
+        isDragging = false;
+        slider.style.cursor = 'grab';
+        
+        var diffX = dragStartX - e.clientX;
+        if (Math.abs(diffX) > 50) {
+            slidePostMedia(postId, diffX > 0 ? 1 : -1);
+        }
+    });
+    
+    slider.addEventListener('mouseleave', function() {
+        isDragging = false;
+        slider.style.cursor = 'grab';
+    });
+    
+    // 커서 스타일
+    slider.style.cursor = 'grab';
+}
+
+console.log('✅ 피드 슬라이드 기능 (스와이프) 로드 완료');
+
+// ========== 피드 슬라이드 (스와이프) ==========
+function initPostSwipe(postId) {
+    var slider = document.querySelector('#post-slider-' + postId + ' .slider-wrapper');
+    if (!slider) return;
+    
+    var startX = 0;
+    
+    slider.addEventListener('touchstart', function(e) {
+        startX = e.touches[0].clientX;
+    });
+    
+    slider.addEventListener('touchend', function(e) {
+        var diffX = startX - e.changedTouches[0].clientX;
+        if (Math.abs(diffX) > 50) {
+            var slideWidth = slider.offsetWidth;
+            var newScroll = slider.scrollLeft + (slideWidth * (diffX > 0 ? 1 : -1));
+            slider.scrollTo({ left: newScroll, behavior: 'smooth' });
+        }
+    });
+    
+    slider.addEventListener('scroll', function() {
+        var indicators = document.querySelectorAll('#post-indicator-' + postId + ' .indicator-dot');
+        var currentIndex = Math.round(slider.scrollLeft / slider.offsetWidth);
+        for (var i = 0; i < indicators.length; i++) {
+            indicators[i].style.background = i === currentIndex ? 'white' : 'rgba(255,255,255,0.5)';
+        }
+    });
+    
+    slider.style.cursor = 'grab';
+}
