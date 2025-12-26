@@ -5310,20 +5310,13 @@ var reelSwiping = false;
 
 // 다음 릴스
 function nextReel() {
-    if (currentReelIndex < reelsList.length - 1) {
-        currentReelIndex++;
-        currentReelMediaIndex = 0;
-        showCurrentReel();
-    }
+    nextReelSmooth();
 }
+
 
 // 이전 릴스
 function prevReel() {
-    if (currentReelIndex > 0) {
-        currentReelIndex--;
-        currentReelMediaIndex = 0;
-        showCurrentReel();
-    }
+    prevReelSmooth();
 }
 
 function prevReel() {
@@ -5428,9 +5421,14 @@ function prevReel() {
 }
 
 function closeReelViewer() {
+    // 모든 비디오 정지
+    var videos = document.querySelectorAll('.reel-video-wrapper video');
+    for (var i = 0; i < videos.length; i++) {
+        videos[i].pause();
+    }
+    
     document.getElementById('reelViewerModal').style.display = 'none';
-    var video = document.querySelector('.reel-video-wrapper video');
-    if (video) video.pause();
+    document.body.style.overflow = '';
     loadReels();
 }
 
