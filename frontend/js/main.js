@@ -5253,6 +5253,65 @@ function openReelComments() {
     alert('댓글 기능은 추후 업데이트 예정입니다!\n현재 댓글 수: ' + (reel.comment_count || 0));
 }
 
+// ========== 릴스 업로드 (1개만) ==========
+
+var reelMediaFiles = [];
+
+function previewReelMedia(event) {
+    var files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    // 1개만 허용
+    var file = files[0];
+    var type = file.type.startsWith('video') ? 'video' : 'image';
+    
+    reelMediaFiles = [{
+        file: file,
+        type: type,
+        url: URL.createObjectURL(file)
+    }];
+    
+    // 미리보기 표시
+    document.getElementById('reelMediaLabel').style.display = 'none';
+    document.getElementById('reelPreviewContainer').style.display = 'block';
+    
+    renderReelPreview();
+}
+
+function renderReelPreview() {
+    var slider = document.getElementById('reelPreviewSlider');
+    var indicator = document.getElementById('reelPreviewIndicator');
+    
+    if (reelMediaFiles.length === 0) return;
+    
+    var media = reelMediaFiles[0];
+    
+    // 미디어 표시
+    if (media.type === 'video') {
+        slider.innerHTML = '<video src="' + media.url + '" style="max-width: 100%; max-height: 100%; border-radius: 8px;" controls autoplay muted></video>';
+    } else {
+        slider.innerHTML = '<img src="' + media.url + '" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;">';
+    }
+    
+    // 인디케이터 숨기기 (1개만)
+    if (indicator) {
+        indicator.style.display = 'none';
+    }
+    
+    var prevBtn = document.getElementById('reelPrevBtn');
+    var nextBtn = document.getElementById('reelNextBtn');
+    if (prevBtn) prevBtn.style.display = 'none';
+    if (nextBtn) nextBtn.style.display = 'none';
+}
+
+function resetReelMedia() {
+    reelMediaFiles = [];
+    document.getElementById('reelMediaInput').value = '';
+    document.getElementById('reelMediaLabel').style.display = 'flex';
+    document.getElementById('reelPreviewContainer').style.display = 'none';
+}
+
+
 console.log('✅ 릴스 뷰어 (인스타그램 방식) 로드 완료');
 
 // ========== 사용자 검색 기능 ==========
