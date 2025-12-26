@@ -3743,9 +3743,15 @@ async function loadComments(postId) {
             html += '<span style="font-weight: 600;">' + comment.user_name + '</span>';
             html += '<span style="color: #999; font-size: 12px; margin-left: 10px;">' + timeAgo + '</span>';
             html += '<p style="margin: 5px 0 0 0; line-height: 1.5;">' + comment.content + '</p>';
-            html += '<button onclick="openReplyInput(' + comment.id + ')" style="background: none; border: none; color: #0066cc; cursor: pointer; font-size: 12px; margin-top: 5px; padding: 0;">답글</button>';
-            html += '</div>';
-            html += '</div>';
+            html += '<div style="display: flex; gap: 12px; margin-top: 5px;">';
+            html += '<button onclick="openReplyInput(' + comment.id + ')" style="background: none; border: none; color: #0066cc; cursor: pointer; font-size: 12px; padding: 0;">답글</button>';
+            html += '<button onclick="toggleCommentLike(' + comment.id + ')" style="background: none; border: none; cursor: pointer; font-size: 12px; padding: 0; display: flex; align-items: center; gap: 4px;">';
+            html += '<span>' + (comment.user_liked ? '❤️' : '🤍') + '</span>';
+            html += '<span style="color: #666;">' + (comment.like_count || 0) + '</span>';
+            html += '</button>';
+            html += '</div>';  // 답글/좋아요 버튼 감싸는 div 닫기
+            html += '</div>';  // flex: 1 div 닫기
+            html += '</div>';  // display: flex; gap: 10px div 닫기
             
             if (isMyComment) {
                 html += '<div style="display: flex; gap: 8px;">';
@@ -3753,7 +3759,8 @@ async function loadComments(postId) {
                 html += '<button onclick="deleteComment(' + comment.id + ')" style="background: none; border: none; color: #999; cursor: pointer; font-size: 14px;" title="삭제">🗑️</button>';
                 html += '</div>';
             }
-            html += '</div>';
+            html += '</div>';  // justify-content: space-between div 닫기
+            
             // 대댓글 렌더링
             if (comment.replies && comment.replies.length > 0) {
                 html += '<div style="margin-left: 45px; margin-top: 10px;">';
