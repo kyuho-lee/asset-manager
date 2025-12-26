@@ -4757,6 +4757,7 @@ async function openStoryViewer(userId) {
 }
 
 // 현재 스토리 표시
+// 현재 스토리 표시
 async function showCurrentStory() {
     if (!currentStoryUser || currentStoryIndex >= currentStoryUser.stories.length) {
         closeStoryViewer();
@@ -4787,6 +4788,9 @@ async function showCurrentStory() {
     var timeStr = diff < 60 ? diff + '분 전' : Math.floor(diff / 60) + '시간 전';
     document.getElementById('storyViewerTime').textContent = timeStr;
     
+    // ⭐ 점 인디케이터 렌더링
+    renderStoryIndicators();
+    
     // 삭제 버튼 표시 여부
     var deleteBtn = document.getElementById('storyDeleteBtn');
     if (deleteBtn) {
@@ -4799,6 +4803,33 @@ async function showCurrentStory() {
     
     // 진행바 시작
     startStoryProgress();
+}
+
+// ⭐ 점 인디케이터 렌더링
+function renderStoryIndicators() {
+    var container = document.getElementById('storyIndicators');
+    if (!container) return;
+    
+    var totalStories = currentStoryUser.stories.length;
+    var html = '';
+    
+    for (var i = 0; i < totalStories; i++) {
+        var width = 'calc((100% - ' + (totalStories - 1) * 4 + 'px) / ' + totalStories + ')';
+        html += '<div style="flex: 1; height: 3px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden; position: relative;">';
+        
+        if (i < currentStoryIndex) {
+            // 이미 본 스토리 - 완전히 채움
+            html += '<div style="width: 100%; height: 100%; background: white;"></div>';
+        } else if (i === currentStoryIndex) {
+            // 현재 스토리 - 진행바
+            html += '<div id="storyProgressBar" style="width: 0%; height: 100%; background: white; transition: width 0.1s linear;"></div>';
+        }
+        // 아직 안 본 스토리는 비워둠
+        
+        html += '</div>';
+    }
+    
+    container.innerHTML = html;
 }
 
 // 제스처 초기화

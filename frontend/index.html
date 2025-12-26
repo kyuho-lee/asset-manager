@@ -964,39 +964,40 @@ button[onclick*="downloadExcel"]:hover {
     </div>
 
     <!-- 스토리 뷰어 모달 -->
-    <div id="storyViewerModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: black; z-index: 2000;">
-        <div style="position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
-            <!-- 닫기 버튼 -->
-            <button onclick="closeStoryViewer()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: white; font-size: 30px; cursor: pointer; z-index: 2001;">&times;</button>
-            
+    <div id="storyViewerModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; overflow: hidden;">
         
-            <!-- ⭐ 삭제 버튼 추가 -->
-            <button id="storyDeleteBtn" onclick="deleteStory()" style="display: none; position: absolute; top: 15px; right: 60px; background: rgba(255,0,0,0.8); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; z-index: 10001;">🗑️ 삭제</button>
+        <!-- 상단 영역 -->
+        <div style="position: absolute; top: 0; left: 0; right: 0; z-index: 10001; padding: 10px 15px;">
             
-
-            <!-- 사용자 정보 -->
-            <div style="position: absolute; top: 20px; left: 20px; display: flex; align-items: center; gap: 10px; z-index: 2001;">
-                <div id="storyViewerAvatar" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;"></div>
-                <div>
-                    <div id="storyViewerName" style="color: white; font-weight: 600;"></div>
-                    <div id="storyViewerTime" style="color: #aaa; font-size: 12px;"></div>
+            <!-- ⭐ 점 인디케이터 -->
+            <div id="storyIndicators" style="display: flex; gap: 4px; margin-bottom: 15px;"></div>
+            
+            <!-- 프로필 정보 -->
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div id="storyViewerAvatar" style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 14px;"></div>
+                    <div>
+                        <div id="storyViewerName" style="color: white; font-weight: 600; font-size: 14px;"></div>
+                        <div id="storyViewerTime" style="color: rgba(255,255,255,0.7); font-size: 12px;"></div>
+                    </div>
                 </div>
+                
+                <!-- 삭제 버튼 -->
+                <button id="storyDeleteBtn" onclick="deleteStory()" style="display: none; background: rgba(255,0,0,0.8); color: white; border: none; padding: 6px 12px; border-radius: 15px; cursor: pointer; font-size: 12px; font-weight: 600;">🗑️</button>
+                
+                <!-- 닫기 버튼 -->
+                <button onclick="closeStoryViewer()" style="background: none; border: none; color: white; font-size: 28px; cursor: pointer; padding: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">✕</button>
             </div>
-            
-            <!-- 진행바 -->
-            <div style="position: absolute; top: 70px; left: 20px; right: 20px; height: 3px; background: rgba(255,255,255,0.3); border-radius: 2px;">
-                <div id="storyProgressBar" style="height: 100%; background: white; border-radius: 2px; width: 0%; transition: width 0.1s linear;"></div>
-            </div>
-            
-            <!-- 스토리 이미지 -->
-            <img id="storyViewerImage" src="" style="max-width: 100%; max-height: 80%; object-fit: contain;">
-            
-            <!-- 스토리 텍스트 -->
-            <div id="storyViewerText" style="position: absolute; bottom: 80px; left: 20px; right: 20px; text-align: center; color: white; font-size: 18px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);"></div>
-            
-            <!-- 이전/다음 버튼 -->
-            <button onclick="prevStory()" class="reel-viewer-nav prev">❮</button>
-            <button onclick="nextStory()" class="reel-viewer-nav next">❯</button>
+        </div>
+        
+        <!-- 이미지 -->
+        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center;">
+            <img id="storyViewerImage" style="max-width: 100%; max-height: 100%; object-fit: contain; user-select: none;" draggable="false">
+        </div>
+        
+        <!-- 텍스트 -->
+        <div style="position: absolute; bottom: 20px; left: 20px; right: 20px; text-align: center;">
+            <p id="storyViewerText" style="color: white; font-size: 16px; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.8);"></p>
         </div>
     </div>
 
