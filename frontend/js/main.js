@@ -5052,25 +5052,25 @@ function nextReelSmooth() {
     
     reelTransitioning = true;
     var modal = document.getElementById('reelViewerModal');
-    modal.style.transition = 'transform 0.3s ease';
-    modal.style.transform = 'translateY(-100%)';
+    
+    // ⭐ 애니메이션 시작 전에 이전 콘텐츠 숨기기
+    modal.style.transition = 'opacity 0.15s ease';
+    modal.style.opacity = '0';
     
     setTimeout(function() {
         currentReelIndex++;
         showCurrentReel();
-        modal.style.transition = 'none';
-        modal.style.transform = 'translateY(100%)';
         
+        // ⭐ 새 콘텐츠 로드 후 나타나기
         setTimeout(function() {
-            modal.style.transition = 'transform 0.3s ease';
-            modal.style.transform = 'translateY(0)';
+            modal.style.opacity = '1';
             
             setTimeout(function() {
                 modal.style.transition = '';
                 reelTransitioning = false;
-            }, 300);
-        }, 10);
-    }, 300);
+            }, 150);
+        }, 50);
+    }, 150);
 }
 
 function prevReelSmooth() {
@@ -5079,25 +5079,25 @@ function prevReelSmooth() {
     
     reelTransitioning = true;
     var modal = document.getElementById('reelViewerModal');
-    modal.style.transition = 'transform 0.3s ease';
-    modal.style.transform = 'translateY(100%)';
+    
+    // ⭐ 애니메이션 시작 전에 이전 콘텐츠 숨기기
+    modal.style.transition = 'opacity 0.15s ease';
+    modal.style.opacity = '0';
     
     setTimeout(function() {
         currentReelIndex--;
         showCurrentReel();
-        modal.style.transition = 'none';
-        modal.style.transform = 'translateY(-100%)';
         
+        // ⭐ 새 콘텐츠 로드 후 나타나기
         setTimeout(function() {
-            modal.style.transition = 'transform 0.3s ease';
-            modal.style.transform = 'translateY(0)';
+            modal.style.opacity = '1';
             
             setTimeout(function() {
                 modal.style.transition = '';
                 reelTransitioning = false;
-            }, 300);
-        }, 10);
-    }, 300);
+            }, 150);
+        }, 50);
+    }, 150);
 }
 
 // 스와이프로 릴스 전환
