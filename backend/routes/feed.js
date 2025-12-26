@@ -155,17 +155,33 @@ router.get('/', async (req, res) => {
         LIMIT ? OFFSET ?
     `, [userId, parseInt(limit), parseInt(offset)]);
         
-        // media_urls JSON 파싱
+        // ⭐ media_urls JSON 파싱 (이 부분이 핵심!)
         const postsWithMedia = posts.map(post => {
             let mediaUrls = [];
-            try {
-                mediaUrls = post.media_urls ? JSON.parse(post.media_urls) : (post.image_url ? [post.image_url] : []);
-            } catch (e) {
-                mediaUrls = post.image_url ? [post.image_url] : [];
+            
+            // media_urls 파싱
+            if (post.media_urls) {
+                try {
+                    // DB에서 가져온 값이 문자열이면 JSON 파싱
+                    if (typeof post.media_urls === 'string') {
+                        mediaUrls = JSON.parse(post.media_urls);
+                    } else {
+                        mediaUrls = post.media_urls;
+                    }
+                } catch (e) {
+                    console.error('media_urls 파싱 오류:', e);
+                    mediaUrls = [];
+                }
             }
+            
+            // 기존 image_url 하위 호환성
+            if (mediaUrls.length === 0 && post.image_url) {
+                mediaUrls = [post.image_url];
+            }
+            
             return {
                 ...post,
-                media_urls: mediaUrls
+                media_urls: mediaUrls  // ⭐ 파싱된 배열로 덮어쓰기
             };
         });
         
@@ -175,7 +191,7 @@ router.get('/', async (req, res) => {
         
         res.json({ 
             success: true, 
-            data: postsWithMedia,
+            data: postsWithMedia,  // ⭐ 파싱된 데이터 전송
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),
