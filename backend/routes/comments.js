@@ -68,6 +68,54 @@ router.post('/', authenticateToken, async (req, res) => {
             await db.query('UPDATE posts SET comment_count = comment_count + 1 WHERE id = ?', [post_id]);
         }
         
+        // ⭐ 멘션 감지 및 알림 발송
+        const mentionRegex = /@([가-힣a-zA-Z0-9_]+)/g;
+        const mentions = content.match(mentionRegex);
+        
+        if (mentions) {
+            for (const mention of mentions) {
+                const mentionedUsername = mention.substring(1); // @ 제거
+                
+                // 멘션된 사용자 찾기
+                const [mentionedUsers] = await db.query(
+                    'SELECT id FROM users WHERE name = ?',
+                    [mentionedUsername]
+                );
+                
+                if (mentionedUsers.length > 0 && mentionedUsers[0].id !== userId) {
+                    const mentionedUserId = mentionedUsers[0].id;
+                    
+                    // 댓글 작성자 이름 가져오기
+                    const [commenter] = await db.query('SELECT name FROM users WHERE id = ?', [userId]);
+                    const commenterName = commenter[0].name;
+                    
+                    // 알림 저장
+                    await db.query(
+                        `INSERT INTO notifications (user_id, type, message, link)
+                         VALUES (?, 'mention', ?, ?)`,
+                        [
+                            mentionedUserId,
+                            `${commenterName}님이 댓글에서 회원님을 언급했습니다.`,
+                            `/feed/${post_id}`
+                        ]
+                    );
+                    
+                    // 실시간 알림 (Socket.io)
+                    const io = req.app.get('io');
+                    const connectedUsers = req.app.get('connectedUsers');
+                    const socketId = connectedUsers.get(mentionedUserId);
+                    
+                    if (socketId) {
+                        io.to(socketId).emit('newNotification', {
+                            type: 'mention',
+                            message: `${commenterName}님이 댓글에서 회원님을 언급했습니다.`,
+                            postId: post_id
+                        });
+                    }
+                }
+            }
+        }
+        
         // 작성한 댓글 정보 반환
         const [newComment] = await db.query(`
             SELECT 
