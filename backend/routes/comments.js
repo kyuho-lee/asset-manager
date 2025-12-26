@@ -13,11 +13,12 @@ router.get('/:postId', authenticateToken, async (req, res) => {
         const [comments] = await db.query(`
             SELECT 
                 c.*,
-                u.username,
-                u.profile_image,
+                u.name as user_name,
+                pr.profile_image as user_profile_image,
                 EXISTS(SELECT 1 FROM comment_likes cl WHERE cl.comment_id = c.id AND cl.user_id = ?) as user_liked
             FROM comments c
             JOIN users u ON c.user_id = u.id
+            LEFT JOIN profiles pr ON c.user_id = pr.user_id
             WHERE c.post_id = ? AND c.parent_comment_id IS NULL
             ORDER BY c.created_at DESC
         `, [userId, postId]);
@@ -27,11 +28,12 @@ router.get('/:postId', authenticateToken, async (req, res) => {
             const [replies] = await db.query(`
                 SELECT 
                     c.*,
-                    u.username,
-                    u.profile_image,
+                    u.name as user_name,
+                    pr.profile_image as user_profile_image,
                     EXISTS(SELECT 1 FROM comment_likes cl WHERE cl.comment_id = c.id AND cl.user_id = ?) as user_liked
                 FROM comments c
                 JOIN users u ON c.user_id = u.id
+                LEFT JOIN profiles pr ON c.user_id = pr.user_id
                 WHERE c.parent_comment_id = ?
                 ORDER BY c.created_at ASC
             `, [userId, comment.id]);
@@ -70,12 +72,13 @@ router.post('/', authenticateToken, async (req, res) => {
         const [newComment] = await db.query(`
             SELECT 
                 c.*,
-                u.username,
-                u.profile_image,
+                u.name as user_name,
+                pr.profile_image as user_profile_image,
                 0 as user_liked,
                 0 as like_count
             FROM comments c
             JOIN users u ON c.user_id = u.id
+            LEFT JOIN profiles pr ON c.user_id = pr.user_id
             WHERE c.id = ?
         `, [result.insertId]);
         
