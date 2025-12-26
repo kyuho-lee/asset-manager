@@ -3511,7 +3511,7 @@ function renderPostCard(post) {
             if (mediaUrl.includes('.mp4') || mediaUrl.includes('video')) {
                 html += '<video src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain;" controls></video>';
             } else {
-                html += '<img src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain; cursor: pointer;" onclick="openImageModal(this.src)">';
+                html += '<img src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain; cursor: pointer;" data-img-src="' + mediaUrl + '">';            
             }
         } else {
             // 여러 장 슬라이드 (스와이프)
@@ -3525,7 +3525,7 @@ function renderPostCard(post) {
                 if (mediaUrl.includes('.mp4') || mediaUrl.includes('video')) {
                     html += '<video src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain;" controls></video>';
                 } else {
-                    html += '<img src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain; cursor: pointer;" onclick="openImageModal(this.src)">';
+                    html += '<img src="' + mediaUrl + '" style="width: 100%; max-height: 500px; object-fit: contain; cursor: pointer;" data-img-src="' + mediaUrl + '">';
                 }
                 
                 html += '</div>';
@@ -5783,32 +5783,63 @@ function initPostSwipe(postId) {
     if (!slider) return;
     
     var startX = 0;
+    var startTime = 0;
     var isDragging = false;
+    var hasMoved = false;
     
     // 모바일 터치
     slider.addEventListener('touchstart', function(e) {
         startX = e.touches[0].clientX;
+        startTime = Date.now();
+        hasMoved = false;
+    });
+    
+    slider.addEventListener('touchmove', function(e) {
+        var diffX = Math.abs(e.touches[0].clientX - startX);
+        if (diffX > 10) {
+            hasMoved = true;
+        }
     });
     
     slider.addEventListener('touchend', function(e) {
         var diffX = startX - e.changedTouches[0].clientX;
-        if (Math.abs(diffX) > 50) {
+        var diffTime = Date.now() - startTime;
+        
+        // 움직임이 크고 빠르면 슬라이드
+        if (hasMoved && Math.abs(diffX) > 50) {
             var slideWidth = slider.offsetWidth;
             var newScroll = slider.scrollLeft + (slideWidth * (diffX > 0 ? 1 : -1));
             slider.scrollTo({ left: newScroll, behavior: 'smooth' });
+        } 
+        // 움직임이 작고 빠르면 클릭 (이미지 확대)
+        else if (!hasMoved && diffTime < 300) {
+            var target = e.target;
+            if (target.tagName === 'IMG' && target.dataset.imgSrc) {
+                openImageModal(target.dataset.imgSrc);
+            }
         }
     });
     
-    // 데스크톱 마우스 드래그
+    // 데스크톱 마우스
+    var mouseStartX = 0;
+    var mouseStartTime = 0;
+    var mouseHasMoved = false;
+    
     slider.addEventListener('mousedown', function(e) {
         isDragging = true;
-        startX = e.clientX;
+        mouseStartX = e.clientX;
+        mouseStartTime = Date.now();
+        mouseHasMoved = false;
         slider.style.cursor = 'grabbing';
         e.preventDefault();
     });
     
     slider.addEventListener('mousemove', function(e) {
         if (!isDragging) return;
+        var diffX = Math.abs(e.clientX - mouseStartX);
+        if (diffX > 10) {
+            mouseHasMoved = true;
+        }
         e.preventDefault();
     });
     
@@ -5817,11 +5848,21 @@ function initPostSwipe(postId) {
         isDragging = false;
         slider.style.cursor = 'grab';
         
-        var diffX = startX - e.clientX;
-        if (Math.abs(diffX) > 50) {
+        var diffX = mouseStartX - e.clientX;
+        var diffTime = Date.now() - mouseStartTime;
+        
+        // 움직임이 크면 슬라이드
+        if (mouseHasMoved && Math.abs(diffX) > 50) {
             var slideWidth = slider.offsetWidth;
             var newScroll = slider.scrollLeft + (slideWidth * (diffX > 0 ? 1 : -1));
             slider.scrollTo({ left: newScroll, behavior: 'smooth' });
+        } 
+        // 움직임이 작고 빠르면 클릭 (이미지 확대)
+        else if (!mouseHasMoved && diffTime < 300) {
+            var target = e.target;
+            if (target.tagName === 'IMG' && target.dataset.imgSrc) {
+                openImageModal(target.dataset.imgSrc);
+            }
         }
     });
     
