@@ -12,9 +12,16 @@ const app = express();
 
 // CORS 설정 (프론트엔드-백엔드 통신 허용)
 app.use(cors({
-    origin: '*', // 개발 시 모든 도메인 허용 (배포 시 특정 도메인으로 변경)
-    credentials: true
+    origin: '*', // 모든 도메인 허용
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // ⭐ 모든 HTTP 메서드 허용
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'], // ⭐ 모든 헤더 허용
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    maxAge: 600 // Preflight 요청 캐시 10분
 }));
+
+// ⭐ OPTIONS 요청 명시적 처리 (중요!)
+app.options('*', cors());
 
 // Body Parser 설정
 app.use(bodyParser.json());
@@ -99,7 +106,6 @@ app.use((err, req, res, next) => {
 
 // ========== 서버 시작 ==========
 
-
 const PORT = process.env.PORT || 5000;
 
 // HTTP 서버 생성
@@ -109,7 +115,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: "*",
-        methods: ["GET", "POST"]
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
