@@ -5203,6 +5203,13 @@ document.getElementById('reelViewerModal').addEventListener('click', function(e)
 // 릴스 미디어 렌더링
 function renderReelViewerMedia(reel) {
     var wrapper = document.querySelector('.reel-video-wrapper');
+    
+    // ⭐ null 체크 추가
+    if (!wrapper) {
+        console.error('❌ .reel-video-wrapper 요소를 찾을 수 없습니다.');
+        return; // 함수 종료
+    }
+    
     var media = reel.media || [{ media_type: reel.media_type || 'video', media_url: reel.video_url }];
     var current = media[currentReelMediaIndex];
     
