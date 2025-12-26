@@ -4239,6 +4239,11 @@ function connectSocket() {
         updateLikeUI(data.postId, data.likeCount, data.liked, data.userId);
     });
     
+    socket.on('reelLikeUpdate', function(data) {
+        console.log('🎬 릴스 좋아요 업데이트:', data);
+        updateReelLikeUI(data.reelId, data.likeCount, data.liked, data.userId);
+    });
+
     socket.on('disconnect', function() {
         console.log('❌ Socket 연결 해제');
     });
@@ -5456,6 +5461,26 @@ async function toggleReelLike() {
         }
     } catch (error) {
         console.error('릴스 좋아요 오류:', error);
+    }
+}
+
+function updateReelLikeUI(reelId, likeCount, liked, likedUserId) {
+    var likeCountEl = document.getElementById('reelLikeCount');
+    if (likeCountEl) {
+        likeCountEl.textContent = likeCount || 0;
+    }
+    
+    if (currentUser && likedUserId === currentUser.id && 
+        reelsList[currentReelIndex] && reelsList[currentReelIndex].id === reelId) {
+        
+        var likeBtn = document.getElementById('reelLikeBtn');
+        if (likeBtn) {
+            likeBtn.textContent = liked ? '❤️' : '🤍';
+            likeBtn.style.transform = 'scale(1.3)';
+            setTimeout(function() {
+                likeBtn.style.transform = 'scale(1)';
+            }, 200);
+        }
     }
 }
 

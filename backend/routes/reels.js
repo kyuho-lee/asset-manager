@@ -157,13 +157,36 @@ router.post('/:reelId/like', async (req, res) => {
             [reelId, userId]
         );
         
+        let liked = false;
+
         if (existing.length > 0) {
             await db.query('DELETE FROM reel_likes WHERE reel_id = ? AND user_id = ?', [reelId, userId]);
-            res.json({ success: true, liked: false });
+            liked = false;
         } else {
             await db.query('INSERT INTO reel_likes (reel_id, user_id) VALUES (?, ?)', [reelId, userId]);
-            res.json({ success: true, liked: true });
+            liked = true;
         }
+
+        // ⭐ 좋아요 개수 조회
+        const [likeCount] = await db.query(
+            'SELECT COUNT(*) as count FROM reel_likes WHERE reel_id = ?',
+            [reelId]
+        );
+
+        // ⭐ Socket.IO 브로드캐스트
+        const io = req.app.get('io');
+        io.emit('reelLikeUpdate', {
+            reelId: reelId,
+            likeCount: likeCount[0].count,
+            liked: liked,
+            userId: userId
+        });
+
+        res.json({ 
+            success: true, 
+            liked: liked,
+            likeCount: likeCount[0].count
+        });
     } catch (error) {
         console.error('릴스 좋아요 오류:', error);
         res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
