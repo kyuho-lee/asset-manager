@@ -4791,7 +4791,7 @@ async function loadReels() {
         }
         
         var html = '';
-        
+
         for (var i = 0; i < reelsList.length; i++) {
             var reel = reelsList[i];
             
@@ -4999,16 +4999,13 @@ async function showCurrentReel() {
     
     var media = mediaUrls[0] || {};
     
-    // 비디오 요소
-    var video = document.getElementById('reelViewerVideo');
+   // 비디오 요소
     var wrapper = document.querySelector('.reel-video-wrapper');
-    
+    if (!wrapper) return;
+
     if (media.type === 'video') {
-        video.src = media.url;
-        video.style.display = 'block';
-        video.play().catch(function() {});
+        wrapper.innerHTML = '<video id="reelViewerVideo" src="' + media.url + '" autoplay loop playsinline onclick="this.paused ? this.play() : this.pause()" style="max-width: 100%; max-height: 100vh; object-fit: contain;"></video>';
     } else {
-        // 이미지면 video 대신 img 태그 사용
         wrapper.innerHTML = '<img src="' + media.url + '" style="max-width: 100%; max-height: 100vh; object-fit: contain; user-select: none;" draggable="false">';
     }
     
