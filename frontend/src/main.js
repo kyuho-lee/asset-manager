@@ -10,13 +10,13 @@ import { connectSocket } from './core/socket.js';
 import { initAuth, getCurrentUser, isAuthenticated } from './features/auth/index.js';
 import { initFeed, loadFeed } from './features/feed/index.js';
 import { initReels, loadReels } from './features/reels/index.js';
-import { initStories } from './features/stories/index.js';
+//import { initStories } from './features/stories/index.js';
 import { initChat, loadChatRooms } from './features/chat/index.js';
 import { initComments } from './features/comments/index.js';
-import { initProfile } from './features/profile/index.js';
-import { initFollow } from './features/follow/index.js';
-import { initNotifications } from './features/notifications/index.js';
-import { initSearch } from './features/search/index.js';
+//import { initProfile } from './features/profile/index.js';
+//import { initFollow } from './features/follow/index.js';
+//import { initNotifications } from './features/notifications/index.js';
+//import { initSearch } from './features/search/index.js';
 
 console.log('🚀 KYUTAGRAM 시작...');
 
@@ -105,17 +105,17 @@ async function showMainApp(user) {
         initComments();
         console.log('✅ Comments 초기화');
         
-        initProfile();
-        console.log('✅ Profile 초기화');
+       // initProfile();
+       // console.log('✅ Profile 초기화');
         
-        initFollow();
-        console.log('✅ Follow 초기화');
+       // initFollow();
+       // console.log('✅ Follow 초기화');
         
-        initNotifications();
-        console.log('✅ Notifications 초기화');
+       // initNotifications();
+      //  console.log('✅ Notifications 초기화');
         
-        initSearch();
-        console.log('✅ Search 초기화');
+       // initSearch();
+      //  console.log('✅ Search 초기화');
         
         // ========== 첫 화면 표시 ==========
         const currentPath = window.location.pathname;
