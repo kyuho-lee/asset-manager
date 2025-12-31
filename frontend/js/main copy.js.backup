@@ -1,0 +1,2209 @@
+// ========== 전역 변수 ==========
+var currentUser = null;
+var currentEditIndex = null;
+var currentPage = 1;
+var itemsPerPage = 10;
+var sessionTimeout = null;
+var SESSION_DURATION = 30 * 60 * 1000; // 30분
+var API_BASE_URL = 'http://localhost:5000/api';
+var authToken = null;
+
+// ========== API 호출 헬퍼 함수 ==========
+
+// API 요청 함수
+async function apiRequest(endpoint, options = {}) {
+    const defaultOptions = {
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
+
+    // 인증 토큰이 있으면 헤더에 추가
+    if (authToken) {
+        defaultOptions.headers['Authorization'] = 'Bearer ' + authToken;
+    }
+
+    const finalOptions = {
+        ...defaultOptions,
+        ...options,
+        headers: {
+            ...defaultOptions.headers,
+            ...(options.headers || {})
+        }
+    };
+
+    try {
+        const response = await fetch(API_BASE_URL + endpoint, finalOptions);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || '요청 실패');
+        }
+
+        return data;
+    } catch (error) {
+        console.error('API 요청 오류:', error);
+        throw error;
+    }
+}
+
+// ========== 보안 유틸리티 함수 ==========
+
+// 비밀번호 강도 체크
+function checkPasswordStrength(password) {
+    var strength = 0;
+    
+    if (password.length >= 8) strength++;
+    if (password.length >= 12) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^a-zA-Z0-9]/.test(password)) strength++;
+    
+    var hasLower = /[a-z]/.test(password);
+    var hasUpper = /[A-Z]/.test(password);
+    var hasNumber = /[0-9]/.test(password);
+    var hasSpecial = /[^a-zA-Z0-9]/.test(password);
+    var typeCount = [hasLower, hasUpper, hasNumber, hasSpecial].filter(Boolean).length;
+    
+    if (password.length < 8) {
+        return { level: 'weak', text: '최소 8자 이상 입력하세요', score: 0 };
+    }
+    
+    if (typeCount < 3) {
+        return { level: 'weak', text: '대/소문자, 숫자, 특수문자 중 3가지 이상 사용하세요', score: 1 };
+    }
+    
+    if (strength <= 3) {
+        return { level: 'weak', text: '약한 비밀번호입니다', score: 1 };
+    } else if (strength <= 4) {
+        return { level: 'medium', text: '보통 강도의 비밀번호입니다', score: 2 };
+    } else {
+        return { level: 'strong', text: '강력한 비밀번호입니다', score: 3 };
+    }
+}
+
+// 이메일 형식 검증
+function validateEmail(email) {
+    var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
+
+// 비밀번호 표시/숨김 토글
+function togglePassword(inputId) {
+    var input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+    } else {
+        input.type = 'password';
+    }
+}
+
+// 세션 타임아웃 설정
+function resetSessionTimeout() {
+    if (sessionTimeout) {
+        clearTimeout(sessionTimeout);
+    }
+    
+    sessionTimeout = setTimeout(function() {
+        if (currentUser) {
+            alert('30분 동안 활동이 없어 자동 로그아웃되었습니다.');
+            logout();
+        }
+    }, SESSION_DURATION);
+}
+
+// 활동 감지
+function initActivityDetection() {
+    var events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(function(event) {
+        document.addEventListener(event, resetSessionTimeout);
+    });
+}
+
+// ========== 기본 필드 설정 ==========
+
+var defaultFields = [
+    { key: 'assetNo', name: '자산번호', required: true, type: 'text' },
+    { key: 'model', name: '모델', required: true, type: 'text' },
+    { key: 'type', name: '종류', required: true, type: 'text' },
+    { key: 'spec', name: '스펙', required: true, type: 'text' },
+    { key: 'price', name: '금액', required: true, type: 'number' },
+    { key: 'note1', name: '비고1', required: false, type: 'text' },
+    { key: 'note2', name: '비고2', required: false, type: 'text' },
+    { key: 'note3', name: '비고3', required: false, type: 'text' }
+];
+
+// ========== 필드 설정 (백엔드 연동) ==========
+
+async function getFieldSettings() {
+    try {
+        var data = await apiRequest('/settings/registration-fields', {
+            method: 'GET'
+        });
+        
+        var fields = data || [];
+        
+        // 데이터베이스 형식을 프론트엔드 형식으로 변환
+        var formattedFields = [];
+        
+        for (var i = 0; i < fields.length; i++) {
+            if (fields[i].is_visible) {
+                var fieldType = fields[i].field_type;
+                
+                // 타입 정규화
+                if (fieldType !== 'text' && fieldType !== 'number' && fieldType !== 'date' && fieldType !== 'email' && fieldType !== 'tel') {
+                    fieldType = 'text'; // 기본값
+                }
+                
+                formattedFields.push({
+                    key: fields[i].field_name,
+                    name: fields[i].display_name,
+                    type: fieldType,
+                    required: fields[i].is_required
+                });
+            }
+        }
+        
+        console.log('로드된 필드:', formattedFields);
+        
+        return formattedFields;
+        
+    } catch (error) {
+        console.error('필드 설정 로드 오류:', error);
+        // 오류 시 기본값 반환
+        return defaultFields;
+    }
+}
+
+async function saveFieldSettings(fields) {
+    try {
+        // 프론트엔드 형식을 백엔드 형식으로 변환
+        var formattedFields = [];
+        
+        for (var i = 0; i < fields.length; i++) {
+            formattedFields.push({
+                key: fields[i].key,
+                name: fields[i].name,
+                type: fields[i].type,
+                required: fields[i].required
+            });
+        }
+        
+        console.log('저장할 필드:', formattedFields); // 디버깅용
+        
+        await apiRequest('/settings/registration-fields', {
+            method: 'PUT',
+            body: JSON.stringify({ fields: formattedFields })
+        });
+        
+        console.log('저장 완료!'); // 디버깅용
+        
+    } catch (error) {
+        console.error('필드 설정 저장 오류:', error);
+        throw error;
+    }
+}
+
+// ========== 컬럼 설정 (백엔드 연동) ==========
+
+async function getColumnSettings() {
+    try {
+        var data = await apiRequest('/settings/columns', {
+            method: 'GET'
+        });
+        
+        var columns = data || [];
+        
+        // 데이터베이스 형식을 프론트엔드 형식으로 변환
+        var formattedColumns = [{ key: 'no', name: 'NO', width: 60 }];
+        
+        for (var i = 0; i < columns.length; i++) {
+            if (columns[i].is_visible) {
+                formattedColumns.push({
+                    key: columns[i].field_name,
+                    name: columns[i].display_name,
+                    width: 120
+                });
+            }
+        }
+        
+        formattedColumns.push({ key: 'registerDate', name: '등록일', width: 120 });
+        formattedColumns.push({ key: 'actions', name: '관리', width: 80 });
+        
+        return formattedColumns;
+        
+    } catch (error) {
+        console.error('컬럼 설정 로드 오류:', error);
+        // 오류 시 기본값 반환
+        var fields = await getFieldSettings();
+        var columns = [{ key: 'no', name: 'NO', width: 60 }];
+        
+        for (var i = 0; i < fields.length; i++) {
+            columns.push({
+                key: fields[i].key,
+                name: fields[i].name,
+                width: 120
+            });
+        }
+        
+        columns.push({ key: 'registerDate', name: '등록일', width: 120 });
+        columns.push({ key: 'actions', name: '관리', width: 80 });
+        
+        return columns;
+    }
+}
+
+async function saveColumnSettings(columns) {
+    try {
+        // 프론트엔드 형식을 백엔드 형식으로 변환
+        var formattedColumns = [];
+        
+        for (var i = 0; i < columns.length; i++) {
+            var col = columns[i];
+            if (col.key !== 'no' && col.key !== 'registerDate' && col.key !== 'actions') {
+                formattedColumns.push({
+                    key: col.key,
+                    label: col.name,
+                    isVisible: true,
+                    isRequired: false,
+                    order: i
+                });
+            }
+        }
+        
+        await apiRequest('/settings/columns', {
+            method: 'PUT',
+            body: JSON.stringify({ columns: formattedColumns })
+        });
+        
+    } catch (error) {
+        console.error('컬럼 설정 저장 오류:', error);
+    }
+}
+
+// ========== 인증 관련 함수 ==========
+
+// 탭 전환
+function switchTab(tab) {
+    var loginForm = document.getElementById('loginForm');
+    var signupForm = document.getElementById('signupForm');
+    var loginTab = document.getElementById('loginTab');
+    var signupTab = document.getElementById('signupTab');
+    
+    if (tab === 'login') {
+        loginForm.classList.remove('hidden');
+        signupForm.classList.add('hidden');
+        loginTab.classList.add('active');
+        signupTab.classList.remove('active');
+    } else {
+        loginForm.classList.add('hidden');
+        signupForm.classList.remove('hidden');
+        loginTab.classList.remove('active');
+        signupTab.classList.add('active');
+    }
+    
+    hideMessage();
+}
+
+// 메시지 표시
+function showMessage(message, type) {
+    var messageBox = document.getElementById('messageBox');
+    messageBox.textContent = message;
+    messageBox.className = 'message ' + (type === 'success' ? 'success' : 'error');
+    messageBox.style.display = 'block';
+}
+
+function hideMessage() {
+    var messageBox = document.getElementById('messageBox');
+    messageBox.style.display = 'none';
+}
+
+// 회원가입
+async function handleSignup(e) {
+    e.preventDefault();
+    
+    var name = document.getElementById('signupName').value.trim();
+    var email = document.getElementById('signupEmail').value.trim().toLowerCase();
+    var password = document.getElementById('signupPassword').value;
+    var confirm = document.getElementById('signupConfirm').value;
+    
+    // 이름 검증
+    if (name.length < 2) {
+        showMessage('이름은 최소 2자 이상이어야 합니다.', 'error');
+        return;
+    }
+    
+    // 이메일 형식 검증
+    if (!validateEmail(email)) {
+        showMessage('올바른 이메일 형식이 아닙니다.', 'error');
+        return;
+    }
+    
+    // 비밀번호 강도 검증
+    var strength = checkPasswordStrength(password);
+    if (strength.score < 2) {
+        showMessage('비밀번호가 너무 약합니다. ' + strength.text, 'error');
+        return;
+    }
+    
+    if (password !== confirm) {
+        showMessage('비밀번호가 일치하지 않습니다.', 'error');
+        return;
+    }
+    
+    try {
+        var data = await apiRequest('/auth/signup', {
+            method: 'POST',
+            body: JSON.stringify({ name, email, password })
+        });
+        
+        showMessage(data.message, 'success');
+        document.getElementById('signupForm').reset();
+        
+        // 비밀번호 강도 표시 초기화
+        document.getElementById('strengthBar').className = 'strength-bar-fill';
+        document.getElementById('strengthText').textContent = '비밀번호를 입력하세요';
+        document.getElementById('strengthText').className = 'strength-text';
+        
+        setTimeout(function() {
+            switchTab('login');
+        }, 1500);
+        
+    } catch (error) {
+        showMessage(error.message, 'error');
+    }
+}
+
+// 로그인
+async function handleLogin(e) {
+    e.preventDefault();
+    
+    var email = document.getElementById('loginEmail').value.trim().toLowerCase();
+    var password = document.getElementById('loginPassword').value;
+    
+    // 이메일 형식 검증
+    if (!validateEmail(email)) {
+        showMessage('올바른 이메일 형식이 아닙니다.', 'error');
+        return;
+    }
+    
+    try {
+        var data = await apiRequest('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        });
+        
+        // 토큰 저장
+        authToken = data.token;
+        localStorage.setItem('authToken', authToken);
+        
+        // 사용자 정보 저장
+        currentUser = data.user;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        // 세션 타임아웃 시작
+        resetSessionTimeout();
+        
+        showMessage(data.message, 'success');
+        
+        setTimeout(function() {
+            showMainApp(currentUser);
+        }, 500);
+        
+    } catch (error) {
+        showMessage(error.message, 'error');
+        
+        // 로그인 시도 횟수 표시
+        if (error.message.includes('남은 시도')) {
+            document.getElementById('loginAttempts').textContent = error.message.match(/\d+/)[0] + '/5 실패';
+            document.getElementById('loginAttempts').className = 'form-help error';
+        }
+    }
+}
+
+// 메인 앱 표시
+async function showMainApp(user) {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('mainNav').classList.add('active');
+    document.getElementById('userInfo').style.display = 'flex';
+    
+    // 사용자 이름 표시
+    var userText = user.name + '님';
+    if (user.lastLogin) {
+        userText += ' (마지막 로그인: ' + new Date(user.lastLogin).toLocaleString('ko-KR') + ')';
+    }
+    document.getElementById('currentUser').textContent = userText;
+    
+    // 세션 타임아웃 시작
+    resetSessionTimeout();
+    
+    // 권한에 따라 메뉴 표시/숨김
+    applyPermissions(user);
+    
+    // 첫 화면 결정
+    if (user.permissions && user.permissions.viewAssets) {
+        showPage('list');
+    } else if (user.permissions && user.permissions.registerAssets) {
+        showPage('register');
+    } else if (user.permissions && user.permissions.pageSettings) {
+        showPage('settings');
+    } else if (user.permissions && user.permissions.adminPage) {
+        showPage('admin');
+    } else {
+        alert('접근 권한이 없습니다. 관리자에게 문의하세요.');
+    }
+    
+    // 자산 등록 폼 초기화
+    await renderAssetForm();
+}
+
+// 권한 적용
+function applyPermissions(user) {
+    var navList = document.getElementById('navList');
+    var navRegister = document.getElementById('navRegister');
+    var navDashboard = document.getElementById('navDashboard');
+    var navSettings = document.getElementById('navSettings');
+    var navAdmin = document.getElementById('navAdmin');
+    
+    // 기본값 설정
+    if (!user.permissions) {
+        user.permissions = {
+            viewAssets: true,
+            registerAssets: true,
+            pageSettings: false,
+            adminPage: true
+        };
+    }
+    
+    // 메뉴 표시/숨김
+    if (navList) navList.style.display = user.permissions.viewAssets ? 'block' : 'none';
+    if (navRegister) navRegister.style.display = user.permissions.registerAssets ? 'block' : 'none';
+    if (navDashboard) navDashboard.style.display = user.permissions.viewAssets ? 'block' : 'none'; // 현황은 자산 조회 권한과 동일
+    if (navSettings) navSettings.style.display = user.permissions.pageSettings ? 'block' : 'none';
+    if (navAdmin) navAdmin.style.display = user.permissions.adminPage ? 'block' : 'none';
+}
+
+// 로그아웃
+function logout() {
+    if (!confirm('로그아웃 하시겠습니까?')) return;
+    
+    // 세션 타임아웃 정리
+    if (sessionTimeout) {
+        clearTimeout(sessionTimeout);
+        sessionTimeout = null;
+    }
+    
+    // 데이터 초기화
+    currentUser = null;
+    authToken = null;
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    
+    // UI 초기화
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('mainNav').classList.remove('active');
+    document.getElementById('userInfo').style.display = 'none';
+    
+    var contents = document.querySelectorAll('.main-content');
+    for (var i = 0; i < contents.length; i++) {
+        contents[i].classList.remove('active');
+    }
+    
+    document.getElementById('loginForm').reset();
+    document.getElementById('loginAttempts').textContent = '';
+    switchTab('login');
+}
+
+// ========== 페이지 전환 ==========
+
+async function showPage(page) {
+    var contents = document.querySelectorAll('.main-content');
+    for (var i = 0; i < contents.length; i++) {
+        contents[i].classList.remove('active');
+    }
+    
+    var navItems = document.querySelectorAll('.nav-item');
+    for (var i = 0; i < navItems.length; i++) {
+        navItems[i].classList.remove('active');
+    }
+    
+    if (page === 'list') {
+        var listPage = document.getElementById('listPage');
+        if (listPage) {
+            listPage.classList.add('active');
+            navItems[0].classList.add('active');
+            currentPage = 1;
+            await loadAssets();
+        }
+    } else if (page === 'register') {
+        var registerPage = document.getElementById('registerPage');
+        if (registerPage) {
+            registerPage.classList.add('active');
+            navItems[1].classList.add('active');
+            await renderAssetForm();
+        }
+    } else if (page === 'dashboard') {
+        // 권한 체크
+        if (!currentUser || !currentUser.permissions || !currentUser.permissions.viewAssets) {
+            alert('현황 메뉴에 접근할 권한이 없습니다.');
+            showPage('list');
+            return;
+        }
+        
+        var dashboardPage = document.getElementById('dashboardPage');
+        if (dashboardPage) {
+            dashboardPage.classList.add('active');
+            navItems[2].classList.add('active');
+            await loadDashboard();
+        }
+    } else if (page === 'settings') {
+        var settingsPage = document.getElementById('settingsPage');
+        if (settingsPage) {
+            settingsPage.classList.add('active');
+            navItems[3].classList.add('active');
+            await renderFieldSettings();
+        }
+    } else if (page === 'admin') {
+        var adminPage = document.getElementById('adminPage');
+        if (adminPage) {
+            adminPage.classList.add('active');
+            navItems[4].classList.add('active');
+            await loadUsers();
+        }
+    }
+}
+
+// ========== 자산 관리 ==========
+
+// 자산 등록 폼 렌더링
+async function renderAssetForm() {
+    var fields = await getFieldSettings();
+    var grid = document.getElementById('basicInfoGrid');
+    
+    if (!grid) return;
+    
+    // 오늘 날짜를 yyyy-mm-dd 형식으로 가져오기
+    var today = new Date();
+    var year = today.getFullYear();
+    var month = String(today.getMonth() + 1).padStart(2, '0');
+    var day = String(today.getDate()).padStart(2, '0');
+    var todayStr = year + '-' + month + '-' + day;
+    
+    var html = '';
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        html += '<div class="form-group">';
+        html += '<label>' + field.name + (field.required ? ' *' : '') + '</label>';
+        
+        if (field.type === 'date') {
+            // 날짜 필드는 오늘 날짜를 기본값으로 설정
+            html += '<input type="date" id="' + field.key + '" ';
+            html += 'value="' + todayStr + '" ';
+            html += 'style="padding: 10px; font-size: 14px;" ';
+        } else {
+            html += '<input type="' + field.type + '" id="' + field.key + '" ';
+        }
+        
+        html += (field.required ? 'required' : '') + '>';
+        html += '</div>';
+    }
+    
+    grid.innerHTML = html;
+}
+
+// 자산 등록 처리
+async function handleAssetSubmit(e) {
+    e.preventDefault();
+    
+    var fields = await getFieldSettings();
+    var asset = {};
+    
+    // 모든 필드 값 수집
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        var input = document.getElementById(field.key);
+        if (input) {
+            // 필드 키를 snake_case로 변환 (백엔드와 맞추기)
+            var key = field.key.replace(/([A-Z])/g, '_$1').toLowerCase();
+            if (key.startsWith('_')) key = key.substring(1);
+            asset[key] = input.value;
+        }
+    }
+    
+    try {
+        var data = await apiRequest('/assets', {
+            method: 'POST',
+            body: JSON.stringify(asset)
+        });
+        
+        alert(data.message);
+        document.getElementById('assetForm').reset();
+        
+    } catch (error) {
+        alert('자산 등록 실패: ' + error.message);
+    }
+}
+
+// 자산 목록 로드
+async function loadAssets() {
+    try {
+        var data = await apiRequest('/assets', {
+            method: 'GET'
+        });
+        
+        var assets = data.data || [];
+        
+        // 컬럼 설정 가져오기
+        var columns = await getColumnSettings();
+        var fields = await getFieldSettings();
+        
+        // 테이블 헤더 생성
+        var thead = document.getElementById('tableHeader');
+        var tbody = document.getElementById('assetTableBody');
+        
+        var headerHtml = '';
+        for (var i = 0; i < columns.length; i++) {
+            headerHtml += '<th draggable="true" data-index="' + i + '" style="width: ' + columns[i].width + 'px;">';
+            headerHtml += '<span>' + columns[i].name + '</span>';
+            headerHtml += '<div class="resize-handle"></div>';
+            headerHtml += '</th>';
+        }
+        thead.innerHTML = headerHtml;
+        
+        // 리사이즈 이벤트 추가
+        addResizeHandlers();
+        
+        // 헤더 드래그 이벤트 추가
+        addHeaderDragHandlers();
+        
+        // 데이터 없을 때
+        if (assets.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="' + columns.length + '" class="no-data">등록된 자산이 없습니다.</td></tr>';
+            document.getElementById('paginationContainer').style.display = 'none';
+            return;
+        }
+        
+        // 페이지네이션 계산
+        var totalPages = Math.ceil(assets.length / itemsPerPage);
+        var startIndex = (currentPage - 1) * itemsPerPage;
+        var endIndex = Math.min(startIndex + itemsPerPage, assets.length);
+        var currentAssets = assets.slice(startIndex, endIndex);
+        
+        // 데이터 행 생성
+        var html = '';
+        for (var i = 0; i < currentAssets.length; i++) {
+            var asset = currentAssets[i];
+            var actualIndex = startIndex + i;
+            html += '<tr data-id="' + asset.id + '" class="asset-row">';
+            
+            for (var j = 0; j < columns.length; j++) {
+                var col = columns[j];
+                var value = '';
+                
+                if (col.key === 'no') {
+                    value = actualIndex + 1;
+                } else if (col.key === 'registerDate') {
+                    // 날짜 형식을 yyyy-mm-dd로 변환
+                    if (asset.register_date) {
+                        var date = new Date(asset.register_date);
+                        var year = date.getFullYear();
+                        var month = String(date.getMonth() + 1).padStart(2, '0');
+                        var day = String(date.getDate()).padStart(2, '0');
+                        value = year + '-' + month + '-' + day;
+                    } else {
+                        value = '-';
+                    }
+                } else if (col.key === 'actions') {
+                    // 자산 등록 권한이 있는 사용자만 삭제 버튼 표시
+                    if (currentUser && currentUser.permissions && currentUser.permissions.registerAssets) {
+                        value = '<button class="btn-delete" data-id="' + asset.id + '" onclick="event.stopPropagation();">삭제</button>';
+                    } else {
+                        value = '-';
+                    }
+                } else if (col.key === 'price') {
+                    // snake_case로 변환
+                    var snakeKey = col.key.replace(/([A-Z])/g, '_$1').toLowerCase();
+                    if (snakeKey.startsWith('_')) snakeKey = snakeKey.substring(1);
+                    value = asset[snakeKey] ? Number(asset[snakeKey]).toLocaleString() + '원' : '-';
+                } else {
+                    // camelCase를 snake_case로 변환
+                    var snakeKey = col.key.replace(/([A-Z])/g, '_$1').toLowerCase();
+                    if (snakeKey.startsWith('_')) snakeKey = snakeKey.substring(1);
+                    value = asset[snakeKey] || '-';
+                }
+                
+                html += '<td>' + value + '</td>';
+            }
+            
+            html += '</tr>';
+        }
+        
+        tbody.innerHTML = html;
+        
+        // 페이지네이션 렌더링
+        renderPagination(assets.length, totalPages);
+        
+        // 행 클릭 이벤트 (수정) - 자산 등록 권한이 있는 경우만
+        if (currentUser && currentUser.permissions && currentUser.permissions.registerAssets) {
+            var rows = tbody.querySelectorAll('.asset-row');
+            for (var i = 0; i < rows.length; i++) {
+                rows[i].addEventListener('click', function() {
+                    var id = parseInt(this.getAttribute('data-id'));
+                    openEditModal(id, assets);
+                });
+                // 수정 가능한 행에 커서 스타일 추가
+                rows[i].style.cursor = 'pointer';
+            }
+        }
+        
+        // 삭제 버튼 이벤트 - 자산 등록 권한이 있는 경우만
+        if (currentUser && currentUser.permissions && currentUser.permissions.registerAssets) {
+            var deleteButtons = tbody.querySelectorAll('.btn-delete');
+            for (var i = 0; i < deleteButtons.length; i++) {
+                deleteButtons[i].addEventListener('click', function() {
+                    var id = parseInt(this.getAttribute('data-id'));
+                    deleteAsset(id);
+                });
+            }
+        }
+        
+    } catch (error) {
+        console.error('자산 로드 오류:', error);
+        alert('자산 목록을 불러오는데 실패했습니다: ' + error.message);
+    }
+}
+
+// 페이지네이션 렌더링
+function renderPagination(totalItems, totalPages) {
+    var paginationInfo = document.getElementById('paginationInfo');
+    var paginationButtons = document.getElementById('paginationButtons');
+    var paginationContainer = document.getElementById('paginationContainer');
+    
+    if (totalPages <= 1) {
+        paginationContainer.style.display = 'none';
+        return;
+    }
+    
+    paginationContainer.style.display = 'flex';
+    
+    var startItem = (currentPage - 1) * itemsPerPage + 1;
+    var endItem = Math.min(currentPage * itemsPerPage, totalItems);
+    paginationInfo.textContent = '총 ' + totalItems + '개 중 ' + startItem + '-' + endItem + '개 표시';
+    
+    var buttonsHtml = '';
+    buttonsHtml += '<button class="pagination-btn" onclick="goToPage(' + (currentPage - 1) + ')" ' + 
+                   (currentPage === 1 ? 'disabled' : '') + '>‹</button>';
+    
+    var startPage = Math.max(1, currentPage - 2);
+    var endPage = Math.min(totalPages, currentPage + 2);
+    
+    if (startPage > 1) {
+        buttonsHtml += '<button class="pagination-btn" onclick="goToPage(1)">1</button>';
+        if (startPage > 2) {
+            buttonsHtml += '<span class="pagination-ellipsis">...</span>';
+        }
+    }
+    
+    for (var i = startPage; i <= endPage; i++) {
+        buttonsHtml += '<button class="pagination-btn ' + (i === currentPage ? 'active' : '') + '" ' +
+                       'onclick="goToPage(' + i + ')">' + i + '</button>';
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            buttonsHtml += '<span class="pagination-ellipsis">...</span>';
+        }
+        buttonsHtml += '<button class="pagination-btn" onclick="goToPage(' + totalPages + ')">' + totalPages + '</button>';
+    }
+    
+    buttonsHtml += '<button class="pagination-btn" onclick="goToPage(' + (currentPage + 1) + ')" ' + 
+                   (currentPage === totalPages ? 'disabled' : '') + '>›</button>';
+    
+    paginationButtons.innerHTML = buttonsHtml;
+}
+
+// 페이지 이동
+async function goToPage(page) {
+    currentPage = page;
+    await loadAssets();
+    
+    var listPage = document.getElementById('listPage');
+    if (listPage) {
+        listPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+// 자산 삭제
+async function deleteAsset(id) {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    
+    try {
+        var data = await apiRequest('/assets/' + id, {
+            method: 'DELETE'
+        });
+        
+        alert(data.message);
+        await loadAssets();
+        
+    } catch (error) {
+        alert('자산 삭제 실패: ' + error.message);
+    }
+}
+
+// 수정 모달 열기
+async function openEditModal(id, assets) {
+    var asset = assets.find(function(a) { return a.id === id; });
+    
+    if (!asset) {
+        alert('자산을 찾을 수 없습니다.');
+        return;
+    }
+    
+    currentEditIndex = id;
+    
+    var fields = await getFieldSettings();
+    var editFormGrid = document.querySelector('#editForm .form-grid');
+    
+    if (!editFormGrid) {
+        alert('수정 폼을 찾을 수 없습니다.');
+        return;
+    }
+    
+    // 오늘 날짜를 yyyy-mm-dd 형식으로 가져오기
+    var today = new Date();
+    var year = today.getFullYear();
+    var month = String(today.getMonth() + 1).padStart(2, '0');
+    var day = String(today.getDate()).padStart(2, '0');
+    var todayStr = year + '-' + month + '-' + day;
+    
+    var formHtml = '';
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        // camelCase를 snake_case로 변환
+        var snakeKey = field.key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        if (snakeKey.startsWith('_')) snakeKey = snakeKey.substring(1);
+        
+        var value = asset[snakeKey] || '';
+        
+        // 날짜 필드이고 값이 없으면 오늘 날짜 설정
+        if (field.type === 'date' && !value) {
+            value = todayStr;
+        }
+        
+        formHtml += '<div class="form-group">';
+        formHtml += '<label>' + field.name + (field.required ? ' *' : '') + '</label>';
+        formHtml += '<input type="' + field.type + '" id="edit_' + field.key + '" ';
+        formHtml += 'value="' + value + '" ';
+        formHtml += (field.required ? 'required' : '') + '>';
+        formHtml += '</div>';
+    }
+    
+    editFormGrid.innerHTML = formHtml;
+    
+    var modal = document.getElementById('editModal');
+    if (modal) {
+        modal.classList.add('active');
+        document.body.classList.add('modal-open');
+    }
+}
+
+// 수정 모달 닫기
+function closeEditModal() {
+    document.getElementById('editModal').classList.remove('active');
+    document.body.classList.remove('modal-open');
+    document.getElementById('editForm').reset();
+    currentEditIndex = null;
+}
+
+// 자산 수정 저장
+async function handleEditSubmit(e) {
+    e.preventDefault();
+    
+    if (currentEditIndex === null) return;
+    
+    var fields = await getFieldSettings();
+    var updatedAsset = {};
+    
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        var input = document.getElementById('edit_' + field.key);
+        if (input) {
+            // camelCase를 snake_case로 변환
+            var key = field.key.replace(/([A-Z])/g, '_$1').toLowerCase();
+            if (key.startsWith('_')) key = key.substring(1);
+            updatedAsset[key] = input.value;
+        }
+    }
+    
+    try {
+        var data = await apiRequest('/assets/' + currentEditIndex, {
+            method: 'PUT',
+            body: JSON.stringify(updatedAsset)
+        });
+        
+        alert(data.message);
+        closeEditModal();
+        await loadAssets();
+        
+    } catch (error) {
+        alert('자산 수정 실패: ' + error.message);
+    }
+}
+
+// ========== 테이블 헤더 리사이즈 ==========
+
+var isResizing = false;
+
+function addResizeHandlers() {
+    var handles = document.querySelectorAll('.resize-handle');
+    var isResizing = false;
+    var currentHandle = null;
+    var currentTh = null;
+    var startX = 0;
+    var startWidth = 0;
+
+    for (var i = 0; i < handles.length; i++) {
+        handles[i].addEventListener('mousedown', function(e) {
+            isResizing = true;
+            currentHandle = this;
+            currentTh = this.parentElement;
+            startX = e.pageX;
+            startWidth = currentTh.offsetWidth;
+            
+            currentTh.classList.add('resizing');
+            currentTh.setAttribute('draggable', 'false');
+            
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    }
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isResizing) return;
+
+        var diff = e.pageX - startX;
+        var newWidth = Math.max(50, startWidth + diff);
+        currentTh.style.width = newWidth + 'px';
+    });
+
+    document.addEventListener('mouseup', async function() {
+        if (!isResizing) return;
+        
+        isResizing = false;
+        
+        if (currentTh) {
+            currentTh.classList.remove('resizing');
+            currentTh.setAttribute('draggable', 'true');
+            
+            var index = parseInt(currentTh.getAttribute('data-index'));
+            var newWidth = currentTh.offsetWidth;
+            
+            var columns = await getColumnSettings();
+            columns[index].width = newWidth;
+            await saveColumnSettings(columns);
+        }
+        
+        currentHandle = null;
+        currentTh = null;
+    });
+}
+
+// ========== 테이블 헤더 드래그 앤 드롭 ==========
+
+var draggedHeader = null;
+
+function addHeaderDragHandlers() {
+    var headers = document.querySelectorAll('#tableHeader th');
+    
+    for (var i = 0; i < headers.length; i++) {
+        headers[i].addEventListener('dragstart', function(e) {
+            if (isResizing) {
+                e.preventDefault();
+                return;
+            }
+            
+            draggedHeader = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        
+        headers[i].addEventListener('dragend', function(e) {
+            this.classList.remove('dragging');
+            draggedHeader = null;
+        });
+        
+        headers[i].addEventListener('dragover', function(e) {
+            if (isResizing || !draggedHeader) return;
+            
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            var targetHeader = this;
+            if (draggedHeader === targetHeader) return;
+            
+            var rect = targetHeader.getBoundingClientRect();
+            var midpoint = rect.left + rect.width / 2;
+            
+            if (e.clientX < midpoint) {
+                targetHeader.classList.add('drop-left');
+                targetHeader.classList.remove('drop-right');
+            } else {
+                targetHeader.classList.add('drop-right');
+                targetHeader.classList.remove('drop-left');
+            }
+        });
+        
+        headers[i].addEventListener('dragleave', function(e) {
+            this.classList.remove('drop-left', 'drop-right');
+        });
+        
+        headers[i].addEventListener('drop', async function(e) {
+            if (isResizing || !draggedHeader) return;
+            
+            e.preventDefault();
+            this.classList.remove('drop-left', 'drop-right');
+            
+            var draggedIndex = parseInt(draggedHeader.getAttribute('data-index'));
+            var targetIndex = parseInt(this.getAttribute('data-index'));
+            
+            if (draggedIndex === targetIndex) return;
+            
+            var columns = await getColumnSettings();
+            var draggedColumn = columns[draggedIndex];
+            
+            columns.splice(draggedIndex, 1);
+            
+            if (draggedIndex < targetIndex) {
+                columns.splice(targetIndex, 0, draggedColumn);
+            } else {
+                var rect = this.getBoundingClientRect();
+                var midpoint = rect.left + rect.width / 2;
+                if (e.clientX < midpoint) {
+                    columns.splice(targetIndex, 0, draggedColumn);
+                } else {
+                    columns.splice(targetIndex + 1, 0, draggedColumn);
+                }
+            }
+            
+            await saveColumnSettings(columns);
+            await loadAssets();
+        });
+    }
+}
+
+// ========== 필드 설정 관리 (백엔드 연동) ==========
+
+async function renderFieldSettings() {
+    var fields = await getFieldSettings();
+    var container = document.getElementById('fieldSettingsContainer');
+    
+    if (!container) return;
+    
+    var html = '<div class="settings-section">';
+    html += '<h3>필드 관리</h3>';
+    html += '<p style="color: #666; margin-bottom: 15px;">자산 등록 시 사용할 필드를 추가, 수정, 삭제할 수 있습니다.</p>';
+    html += '<button class="btn-primary" onclick="addNewField()" style="margin-bottom: 20px;">+ 필드 추가</button>';
+    html += '</div>';
+    
+    if (fields.length === 0) {
+        html += '<div class="no-data">등록된 필드가 없습니다.</div>';
+    } else {
+        html += '<div class="field-list">';
+        
+        for (var i = 0; i < fields.length; i++) {
+            var field = fields[i];
+            html += '<div class="field-item" data-index="' + i + '">';
+            html += '<div class="field-info">';
+            html += '<span class="field-name">' + field.name + '</span>';
+            html += '<span class="field-type">(' + (field.type === 'number' ? '숫자' : '텍스트') + ')</span>';
+            if (field.required) {
+                html += '<span class="badge badge-active" style="margin-left: 10px;">필수</span>';
+            }
+            html += '</div>';
+            html += '<div class="field-actions">';
+            html += '<button class="btn-edit" onclick="editField(' + i + ')">수정</button>';
+            html += '<button class="btn-delete" onclick="deleteField(' + i + ')">삭제</button>';
+            html += '</div>';
+            html += '</div>';
+        }
+        
+        html += '</div>';
+    }
+    
+    container.innerHTML = html;
+}
+
+async function addNewField() {
+    var name = prompt('필드 이름을 입력하세요:');
+    if (!name) return;
+    
+    var type = confirm('숫자 타입입니까? (취소하면 텍스트)') ? 'number' : 'text';
+    var required = confirm('필수 항목입니까?');
+    
+    var fields = await getFieldSettings();
+    var key = 'custom_' + Date.now();
+    
+    fields.push({
+        key: key,
+        name: name,
+        type: type,
+        required: required
+    });
+    
+    try {
+        await saveFieldSettings(fields);
+        await renderFieldSettings();
+        alert('필드가 추가되었습니다.');
+    } catch (error) {
+        alert('필드 추가 실패: ' + error.message);
+    }
+}
+
+async function editField(index) {
+    var fields = await getFieldSettings();
+    var field = fields[index];
+    
+    var name = prompt('필드 이름:', field.name);
+    if (!name) return;
+    
+    var type = confirm('숫자 타입입니까? (취소하면 텍스트)\n현재: ' + (field.type === 'number' ? '숫자' : '텍스트')) ? 'number' : 'text';
+    var required = confirm('필수 항목입니까?\n현재: ' + (field.required ? '필수' : '선택'));
+    
+    fields[index].name = name;
+    fields[index].type = type;
+    fields[index].required = required;
+    
+    try {
+        await saveFieldSettings(fields);
+        await renderFieldSettings();
+        alert('필드가 수정되었습니다.');
+    } catch (error) {
+        alert('필드 수정 실패: ' + error.message);
+    }
+}
+
+async function deleteField(index) {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    
+    var fields = await getFieldSettings();
+    fields.splice(index, 1);
+    
+    try {
+        await saveFieldSettings(fields);
+        await renderFieldSettings();
+        alert('필드가 삭제되었습니다.');
+    } catch (error) {
+        alert('필드 삭제 실패: ' + error.message);
+    }
+}
+
+// ========== 페이지 관리 모달 함수 ==========
+
+// 등록 항목 모달 열기
+async function openFieldSettingsModal() {
+    try {
+        var fields = await getFieldSettings();
+        var fieldList = document.getElementById('fieldList');
+        
+        if (!fieldList) {
+            alert('필드 목록 컨테이너를 찾을 수 없습니다.');
+            return;
+        }
+        
+        var html = '';
+        
+        if (fields.length === 0) {
+            html = '<div class="no-data">등록된 항목이 없습니다.</div>';
+        } else {
+            for (var i = 0; i < fields.length; i++) {
+                var field = fields[i];
+                html += '<div class="column-item" data-index="' + i + '">';
+                html += '<div class="column-info">';
+                html += '<span class="column-name">' + field.name + '</span>';
+                html += '<span class="column-type">(' + getFieldTypeLabel(field.type) + ')</span>';
+                if (field.required) {
+                    html += '<span class="badge badge-active" style="margin-left: 10px;">필수</span>';
+                }
+                html += '</div>';
+                html += '<div style="display: flex; gap: 5px;">';
+                html += '<button type="button" class="btn-edit" data-index="' + i + '">수정</button>';
+                html += '</div>';
+                html += '</div>';
+            }
+        }
+        
+        fieldList.innerHTML = html;
+        
+        // 수정 버튼 이벤트 추가
+        var editButtons = fieldList.querySelectorAll('.btn-edit');
+        for (var i = 0; i < editButtons.length; i++) {
+            editButtons[i].addEventListener('click', async function() {
+                var index = parseInt(this.getAttribute('data-index'));
+                await editFieldFromModal(index);
+            });
+        }
+        
+        // 모달 표시
+        document.getElementById('fieldSettingsModal').classList.add('active');
+        document.body.classList.add('modal-open');
+        
+    } catch (error) {
+        alert('등록 항목 목록을 불러오는데 실패했습니다: ' + error.message);
+    }
+}
+
+// 등록 항목 모달 닫기
+function closeFieldSettingsModal() {
+    var modal = document.getElementById('fieldSettingsModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+    document.body.classList.remove('modal-open');
+}
+
+// 필드 타입 레이블 변환
+function getFieldTypeLabel(type) {
+    var labels = {
+        'text': '텍스트',
+        'number': '숫자',
+        'date': '날짜',
+        'email': '이메일',
+        'tel': '전화번호',
+        'textarea': '긴 텍스트'
+    };
+    return labels[type] || '텍스트';
+}
+
+// 모달에서 새 필드 추가 (제거 - 더 이상 사용 안 함)
+async function addNewFieldFromModal() {
+    alert('기본 8개 항목만 사용 가능합니다.\n항목의 이름과 타입은 "수정" 버튼을 눌러 변경할 수 있습니다.');
+}
+
+// 모달에서 필드 수정
+async function editFieldFromModal(index) {
+    try {
+        var fields = await getFieldSettings();
+        var field = fields[index];
+        
+        var newName = prompt('항목 이름을 입력하세요:', field.name);
+        if (!newName || newName.trim() === '') return;
+        
+        var typeOptions = ['text', 'number', 'date', 'email', 'tel'];
+        var typeLabels = ['텍스트', '숫자', '날짜', '이메일', '전화번호'];
+        var currentTypeIndex = typeOptions.indexOf(field.type);
+        if (currentTypeIndex === -1) currentTypeIndex = 0; // 기본값: 텍스트
+        
+        var typeChoice = prompt(
+            '입력 타입을 선택하세요:\n' +
+            '1: 텍스트\n' +
+            '2: 숫자\n' +
+            '3: 날짜\n' +
+            '4: 이메일\n' +
+            '5: 전화번호\n\n' +
+            '현재: ' + (currentTypeIndex + 1) + ' (' + typeLabels[currentTypeIndex] + ')',
+            (currentTypeIndex + 1).toString()
+        );
+        
+        if (!typeChoice) return;
+        
+        var typeIndex = parseInt(typeChoice) - 1;
+        if (isNaN(typeIndex) || typeIndex < 0 || typeIndex >= typeOptions.length) {
+            alert('잘못된 선택입니다. 1~5 사이의 숫자를 입력하세요.');
+            return;
+        }
+        
+        var newType = typeOptions[typeIndex];
+        var newRequired = confirm('필수 항목입니까?\n\n현재: ' + (field.required ? '필수' : '선택'));
+        
+        console.log('변경 전:', field);
+        console.log('변경 후 type:', newType);
+        
+        // 필드 정보 업데이트
+        fields[index].name = newName.trim();
+        fields[index].type = newType;
+        fields[index].required = newRequired;
+        
+        console.log('저장할 필드:', fields[index]);
+        
+        await saveFieldSettings(fields);
+        await openFieldSettingsModal();
+        
+        alert('항목이 수정되었습니다.\n자산 등록 페이지에서 확인하세요.');
+        
+    } catch (error) {
+        alert('항목 수정 실패: ' + error.message);
+        console.error('수정 오류:', error);
+    }
+}
+
+// 모달에서 필드 삭제 (제거 - 기본 항목은 삭제 불가)
+async function deleteFieldFromModal(index) {
+    alert('기본 항목은 삭제할 수 없습니다.\n필요 없는 항목은 이름을 변경하여 다른 용도로 사용하세요.');
+}
+
+// 모달에서 필드 설정 저장
+async function saveFieldSettingsFromModal() {
+    closeFieldSettingsModal();
+    alert('설정이 저장되었습니다!\n자산 등록 페이지에서 변경사항을 확인할 수 있습니다.');
+    
+    // 자산 등록 페이지가 활성화되어 있으면 새로고침
+    if (document.getElementById('registerPage').classList.contains('active')) {
+        await renderAssetForm();
+    }
+}
+
+// ========== 대시보드 ==========
+
+var currentChart = null; // 현재 차트 인스턴스
+var currentChartData = null; // 현재 차트 데이터 저장
+
+// 차트 설정 가져오기
+function getChartSettings() {
+    return {
+        showLegend: document.getElementById('showLegend').checked,
+        showTitle: document.getElementById('showTitle').checked,
+        showGrid: document.getElementById('showGrid').checked,
+        showAnimation: document.getElementById('showAnimation').checked,
+        legendPosition: document.getElementById('legendPosition').value,
+        chartHeight: parseInt(document.getElementById('chartHeight').value)
+    };
+}
+
+// 차트 설정 적용
+function applyChartSettings() {
+    if (!currentChart || !currentChartData) {
+        alert('먼저 그래프를 생성해주세요.');
+        return;
+    }
+    
+    var settings = getChartSettings();
+    
+    // 차트 높이 변경
+    var canvas = document.getElementById('mainChart');
+    canvas.style.maxHeight = settings.chartHeight + 'px';
+    
+    // 차트 옵션 업데이트
+    currentChart.options.plugins.legend.display = settings.showLegend;
+    currentChart.options.plugins.legend.position = settings.legendPosition;
+    currentChart.options.plugins.title.display = settings.showTitle;
+    
+    // 애니메이션 설정
+    if (settings.showAnimation) {
+        currentChart.options.animation = {
+            duration: 1500,
+            easing: 'easeInOutQuart'
+        };
+    } else {
+        currentChart.options.animation = false;
+    }
+    
+    // 격자선 설정 (막대/선 그래프만)
+    if (currentChart.config.type === 'bar' || currentChart.config.type === 'line') {
+        if (settings.showGrid) {
+            currentChart.options.scales.y.grid.color = 'rgba(0, 0, 0, 0.05)';
+            currentChart.options.scales.x.grid.display = false;
+        } else {
+            currentChart.options.scales.y.grid.color = 'transparent';
+            currentChart.options.scales.x.grid.display = false;
+        }
+    }
+    
+    // 차트 업데이트
+    currentChart.update();
+}
+
+// 차트 설정 초기화
+function resetChartSettings() {
+    document.getElementById('showLegend').checked = true;
+    document.getElementById('showTitle').checked = true;
+    document.getElementById('showGrid').checked = true;
+    document.getElementById('showAnimation').checked = true;
+    document.getElementById('legendPosition').value = 'right';
+    document.getElementById('chartHeight').value = 400;
+    document.getElementById('chartHeightValue').textContent = '400';
+    
+    applyChartSettings();
+}
+
+// 차트 설정 모달 열기
+function openChartSettingsModal() {
+    if (!currentChart) {
+        alert('먼저 그래프를 생성해주세요.');
+        return;
+    }
+    
+    var modal = document.getElementById('chartSettingsModal');
+    if (modal) {
+        modal.classList.add('active');
+        document.body.classList.add('modal-open');
+    }
+}
+
+// 차트 설정 모달 닫기
+function closeChartSettingsModal() {
+    var modal = document.getElementById('chartSettingsModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.classList.remove('modal-open');
+    }
+}
+
+// 대시보드 로드
+async function loadDashboard() {
+    try {
+        // 자산 데이터 가져오기
+        var data = await apiRequest('/assets', {
+            method: 'GET'
+        });
+        
+        var assets = data.data || [];
+        
+        // 통계 계산
+        var totalAssets = assets.length;
+        var totalValue = 0;
+        var avgPrice = 0;
+        
+        for (var i = 0; i < assets.length; i++) {
+            if (assets[i].price) {
+                totalValue += parseFloat(assets[i].price);
+            }
+        }
+        
+        if (totalAssets > 0) {
+            avgPrice = totalValue / totalAssets;
+        }
+        
+        // 통계 표시
+        document.getElementById('totalAssets').textContent = totalAssets.toLocaleString();
+        document.getElementById('totalValue').textContent = totalValue.toLocaleString() + '원';
+        document.getElementById('avgPrice').textContent = Math.round(avgPrice).toLocaleString() + '원';
+        
+        // 분석 항목 드롭다운 생성
+        await populateAnalyzeFields();
+        
+        // 기본 차트 생성 (종류별 자산 개수)
+        if (assets.length > 0) {
+            generateChart('type', 'count', 'bar');
+        }
+        
+    } catch (error) {
+        console.error('대시보드 로드 오류:', error);
+        alert('대시보드를 불러오는데 실패했습니다: ' + error.message);
+    }
+}
+
+// 분석 항목 드롭다운 채우기
+async function populateAnalyzeFields() {
+    try {
+        var fields = await getFieldSettings();
+        var select = document.getElementById('analyzeField');
+        
+        var html = '<option value="">항목 선택</option>';
+        
+        for (var i = 0; i < fields.length; i++) {
+            var field = fields[i];
+            // 텍스트 필드만 선택 가능 (그룹화에 적합)
+            if (field.type === 'text') {
+                html += '<option value="' + field.key + '">' + field.name + '</option>';
+            }
+        }
+        
+        select.innerHTML = html;
+        
+    } catch (error) {
+        console.error('필드 목록 로드 오류:', error);
+    }
+}
+
+// 차트 생성
+async function generateChart(fieldKey, aggregateType, chartType) {
+    try {
+        // 자산 데이터 가져오기
+        var data = await apiRequest('/assets', {
+            method: 'GET'
+        });
+        
+        var assets = data.data || [];
+        
+        if (assets.length === 0) {
+            alert('등록된 자산이 없습니다.');
+            return;
+        }
+        
+        // fieldKey를 snake_case로 변환
+        var snakeKey = fieldKey.replace(/([A-Z])/g, '_$1').toLowerCase();
+        if (snakeKey.startsWith('_')) snakeKey = snakeKey.substring(1);
+        
+        // 데이터 집계
+        var aggregated = {};
+        
+        for (var i = 0; i < assets.length; i++) {
+            var asset = assets[i];
+            var value = asset[snakeKey] || '미분류';
+            
+            if (!aggregated[value]) {
+                aggregated[value] = {
+                    count: 0,
+                    sum: 0,
+                    values: []
+                };
+            }
+            
+            aggregated[value].count++;
+            
+            if (asset.price) {
+                var price = parseFloat(asset.price);
+                aggregated[value].sum += price;
+                aggregated[value].values.push(price);
+            }
+        }
+        
+        // 차트 데이터 준비
+        var labels = Object.keys(aggregated);
+        var chartData = [];
+        
+        for (var i = 0; i < labels.length; i++) {
+            var label = labels[i];
+            var data = aggregated[label];
+            
+            if (aggregateType === 'count') {
+                chartData.push(data.count);
+            } else if (aggregateType === 'sum') {
+                chartData.push(Math.round(data.sum));
+            } else if (aggregateType === 'avg') {
+                var avg = data.values.length > 0 ? data.sum / data.values.length : 0;
+                chartData.push(Math.round(avg));
+            }
+        }
+        
+        // 기존 차트 삭제
+        if (currentChart) {
+            currentChart.destroy();
+        }
+        
+        // 차트 생성
+        var ctx = document.getElementById('mainChart').getContext('2d');
+        
+        var aggregateLabel = '';
+        if (aggregateType === 'count') aggregateLabel = '개수';
+        else if (aggregateType === 'sum') aggregateLabel = '합계';
+        else if (aggregateType === 'avg') aggregateLabel = '평균';
+        
+        var fieldName = await getFieldName(fieldKey);
+        
+        // 현재 차트 데이터 저장
+        currentChartData = {
+            fieldKey: fieldKey,
+            aggregateType: aggregateType,
+            chartType: chartType
+        };
+        
+        // 설정 가져오기
+        var settings = getChartSettings();
+        
+        // 그라디언트 색상 생성
+        var gradientColors = [];
+        var borderColors = [];
+        
+        for (var i = 0; i < labels.length; i++) {
+            var gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            var hue = (i * 360 / labels.length) % 360;
+            
+            gradient.addColorStop(0, 'hsla(' + hue + ', 70%, 65%, 0.9)');
+            gradient.addColorStop(1, 'hsla(' + hue + ', 70%, 55%, 0.7)');
+            
+            gradientColors.push(gradient);
+            borderColors.push('hsla(' + hue + ', 70%, 55%, 1)');
+        }
+        
+        currentChart = new Chart(ctx, {
+            type: chartType,
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: fieldName + ' (' + aggregateLabel + ')',
+                    data: chartData,
+                    backgroundColor: gradientColors,
+                    borderColor: borderColors,
+                    borderWidth: 3,
+                    borderRadius: chartType === 'bar' ? 8 : 0,
+                    hoverOffset: chartType === 'pie' || chartType === 'doughnut' ? 15 : 0,
+                    tension: chartType === 'line' ? 0.4 : 0,
+                    fill: chartType === 'line' ? true : false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                animation: settings.showAnimation ? {
+                    duration: 1500,
+                    easing: 'easeInOutQuart'
+                } : false,
+                plugins: {
+                    legend: {
+                        display: settings.showLegend,
+                        position: settings.legendPosition,
+                        labels: {
+                            padding: 15,
+                            font: {
+                                size: 12,
+                                family: "'Segoe UI', 'Malgun Gothic', sans-serif"
+                            },
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            generateLabels: function(chart) {
+                                var data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map(function(label, i) {
+                                        var value = data.datasets[0].data[i];
+                                        var displayValue = '';
+                                        
+                                        if (aggregateType === 'count') {
+                                            displayValue = value + '개';
+                                        } else {
+                                            displayValue = value.toLocaleString() + '원';
+                                        }
+                                        
+                                        return {
+                                            text: label + ': ' + displayValue,
+                                            fillStyle: data.datasets[0].borderColor[i],
+                                            hidden: false,
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    },
+                    title: {
+                        display: settings.showTitle,
+                        text: fieldName + '별 ' + aggregateLabel,
+                        font: {
+                            size: 18,
+                            weight: 'bold',
+                            family: "'Segoe UI', 'Malgun Gothic', sans-serif"
+                        },
+                        padding: {
+                            top: 10,
+                            bottom: 20
+                        },
+                        color: '#2c3e50'
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                        borderWidth: 1,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(context) {
+                                var label = context.label || '';
+                                var value = context.parsed.y || context.parsed;
+                                
+                                if (aggregateType === 'count') {
+                                    return label + ': ' + value + '개';
+                                } else {
+                                    return label + ': ' + value.toLocaleString() + '원';
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: chartType === 'bar' || chartType === 'line' ? {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: settings.showGrid ? 'rgba(0, 0, 0, 0.05)' : 'transparent',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            padding: 10,
+                            font: {
+                                size: 12,
+                                family: "'Segoe UI', 'Malgun Gothic', sans-serif"
+                            },
+                            callback: function(value) {
+                                if (aggregateType === 'count') {
+                                    return value + '개';
+                                } else {
+                                    return value.toLocaleString() + '원';
+                                }
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            padding: 10,
+                            font: {
+                                size: 12,
+                                family: "'Segoe UI', 'Malgun Gothic', sans-serif"
+                            }
+                        }
+                    }
+                } : {}
+            }
+        });
+        
+    } catch (error) {
+        console.error('차트 생성 오류:', error);
+        alert('차트 생성에 실패했습니다: ' + error.message);
+    }
+}
+
+// 필드 이름 가져오기
+async function getFieldName(fieldKey) {
+    try {
+        var fields = await getFieldSettings();
+        var field = fields.find(function(f) { return f.key === fieldKey; });
+        return field ? field.name : fieldKey;
+    } catch (error) {
+        return fieldKey;
+    }
+}
+
+// 차트 생성 버튼 클릭
+async function handleGenerateChart() {
+    var chartType = document.getElementById('chartType').value;
+    var analyzeField = document.getElementById('analyzeField').value;
+    var aggregateType = document.getElementById('aggregateType').value;
+    
+    if (!analyzeField) {
+        alert('분석할 항목을 선택하세요.');
+        return;
+    }
+    
+    await generateChart(analyzeField, aggregateType, chartType);
+}
+
+// ========== 사용자 관리 ==========
+
+var currentPermissionUserId = null;
+
+async function loadUsers() {
+    try {
+        var data = await apiRequest('/users', {
+            method: 'GET'
+        });
+        
+        var users = data.data || [];
+        var container = document.getElementById('userListContainer');
+        
+        if (users.length === 0) {
+            container.innerHTML = '<div class="no-data">등록된 회원이 없습니다.</div>';
+            return;
+        }
+        
+        var html = '<p style="margin-bottom: 20px; color: #0066cc; font-weight: 600;">총 ' + users.length + '명의 회원</p>';
+        
+        for (var i = 0; i < users.length; i++) {
+            var user = users[i];
+            
+            html += '<div class="user-card">';
+            html += '<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">';
+            html += '<div>';
+            html += '<p><strong>이름:</strong> ' + user.name + '</p>';
+            html += '<p><strong>이메일:</strong> ' + user.email + '</p>';
+            html += '<p><strong>가입일:</strong> ' + (user.joinDate ? new Date(user.joinDate).toLocaleDateString('ko-KR') : '-') + '</p>';
+            html += '<p><strong>마지막 로그인:</strong> ' + (user.lastLogin ? new Date(user.lastLogin).toLocaleString('ko-KR') : '-') + '</p>';
+            html += '</div>';
+            html += '<button class="btn-permission" onclick="openPermissionModal(' + user.id + ')">권한 설정</button>';
+            html += '</div>';
+            
+            html += '<div class="permission-badges">';
+            html += '<span class="badge ' + (user.permissions.viewAssets ? 'badge-active' : 'badge-inactive') + '">자산 조회</span>';
+            html += '<span class="badge ' + (user.permissions.registerAssets ? 'badge-active' : 'badge-inactive') + '">자산 등록</span>';
+            html += '<span class="badge ' + (user.permissions.pageSettings ? 'badge-active' : 'badge-inactive') + '">페이지 관리</span>';
+            html += '<span class="badge ' + (user.permissions.adminPage ? 'badge-active' : 'badge-inactive') + '">관리자</span>';
+            html += '</div>';
+            
+            html += '</div>';
+        }
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('사용자 목록 로드 오류:', error);
+        alert('사용자 목록을 불러오는데 실패했습니다: ' + error.message);
+    }
+}
+
+async function openPermissionModal(userId) {
+    currentPermissionUserId = userId;
+    
+    try {
+        var data = await apiRequest('/users/' + userId, {
+            method: 'GET'
+        });
+        
+        var user = data.data;
+        
+        document.getElementById('permissionUserName').textContent = user.name;
+        document.getElementById('permissionUserEmail').textContent = user.email;
+        
+        document.getElementById('permViewAssets').checked = user.permissions.viewAssets;
+        document.getElementById('permRegisterAssets').checked = user.permissions.registerAssets;
+        document.getElementById('permPageSettings').checked = user.permissions.pageSettings;
+        document.getElementById('permAdminPage').checked = user.permissions.adminPage;
+        
+        document.getElementById('permissionModal').classList.add('active');
+        document.body.classList.add('modal-open');
+        
+    } catch (error) {
+        alert('사용자 정보를 불러오는데 실패했습니다: ' + error.message);
+    }
+}
+
+function closePermissionModal() {
+    document.getElementById('permissionModal').classList.remove('active');
+    document.body.classList.remove('modal-open');
+    currentPermissionUserId = null;
+}
+
+async function savePermissions() {
+    if (!currentPermissionUserId) return;
+    
+    var permissions = {
+        view_assets: document.getElementById('permViewAssets').checked,
+        register_assets: document.getElementById('permRegisterAssets').checked,
+        page_settings: document.getElementById('permPageSettings').checked,
+        admin_page: document.getElementById('permAdminPage').checked
+    };
+    
+    try {
+        var data = await apiRequest('/users/' + currentPermissionUserId + '/permissions', {
+            method: 'PUT',
+            body: JSON.stringify(permissions)
+        });
+        
+        alert(data.message);
+        closePermissionModal();
+        await loadUsers();
+        
+        // 현재 로그인한 사용자의 권한이 변경된 경우
+        if (currentUser && currentUser.id === currentPermissionUserId) {
+            // 사용자 정보 다시 로드
+            var userData = await apiRequest('/users/' + currentPermissionUserId, {
+                method: 'GET'
+            });
+            currentUser = userData.data;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            applyPermissions(currentUser);
+        }
+        
+    } catch (error) {
+        alert('권한 저장 실패: ' + error.message);
+    }
+}
+
+// ========== 초기화 ==========
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('페이지 로드 완료');
+    
+    // 활동 감지 초기화
+    initActivityDetection();
+    
+    // 비밀번호 강도 체크
+    var signupPassword = document.getElementById('signupPassword');
+    if (signupPassword) {
+        signupPassword.addEventListener('input', function() {
+            var password = this.value;
+            var strength = checkPasswordStrength(password);
+            var strengthBar = document.getElementById('strengthBar');
+            var strengthText = document.getElementById('strengthText');
+            
+            strengthBar.className = 'strength-bar-fill ' + strength.level;
+            strengthText.textContent = strength.text;
+            strengthText.className = 'strength-text ' + strength.level;
+        });
+    }
+    
+    // 비밀번호 확인 실시간 검증
+    var signupConfirm = document.getElementById('signupConfirm');
+    if (signupConfirm) {
+        signupConfirm.addEventListener('input', function() {
+            var password = document.getElementById('signupPassword').value;
+            var confirm = this.value;
+            var confirmHelp = document.getElementById('confirmHelp');
+            
+            if (confirm.length > 0) {
+                if (password === confirm) {
+                    confirmHelp.textContent = '✓ 비밀번호가 일치합니다';
+                    confirmHelp.className = 'form-help success';
+                } else {
+                    confirmHelp.textContent = '✗ 비밀번호가 일치하지 않습니다';
+                    confirmHelp.className = 'form-help error';
+                }
+            } else {
+                confirmHelp.textContent = '';
+            }
+        });
+    }
+    
+    // 이메일 실시간 검증
+    var signupEmail = document.getElementById('signupEmail');
+    if (signupEmail) {
+        signupEmail.addEventListener('blur', function() {
+            var email = this.value.trim();
+            var emailHelp = document.getElementById('emailHelp');
+            
+            if (email.length > 0) {
+                if (validateEmail(email)) {
+                    emailHelp.textContent = '✓ 올바른 이메일 형식입니다';
+                    emailHelp.className = 'form-help success';
+                } else {
+                    emailHelp.textContent = '✗ 올바른 이메일 형식이 아닙니다';
+                    emailHelp.className = 'form-help error';
+                }
+            } else {
+                emailHelp.textContent = '';
+            }
+        });
+    }
+    
+    // 이벤트 리스너 등록
+    document.getElementById('loginTab').addEventListener('click', function() {
+        switchTab('login');
+    });
+    
+    document.getElementById('signupTab').addEventListener('click', function() {
+        switchTab('signup');
+    });
+    
+    document.getElementById('navList').addEventListener('click', function() {
+        showPage('list');
+    });
+    
+    document.getElementById('navRegister').addEventListener('click', function() {
+        showPage('register');
+    });
+    
+    document.getElementById('navDashboard').addEventListener('click', function() {
+        showPage('dashboard');
+    });
+    
+    document.getElementById('navSettings').addEventListener('click', function() {
+        showPage('settings');
+    });
+    
+    document.getElementById('navAdmin').addEventListener('click', function() {
+        showPage('admin');
+    });
+    
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    
+    document.getElementById('signupForm').addEventListener('submit', handleSignup);
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    document.getElementById('assetForm').addEventListener('submit', handleAssetSubmit);
+    document.getElementById('editForm').addEventListener('submit', handleEditSubmit);
+    
+    // 모달 닫기 이벤트
+    document.getElementById('closeModal').addEventListener('click', closeEditModal);
+    document.getElementById('cancelEdit').addEventListener('click', closeEditModal);
+    
+    // 모달 외부 클릭시 닫기
+    document.getElementById('editModal').addEventListener('click', function(e) {
+        if (e.target.id === 'editModal') {
+            closeEditModal();
+        }
+    });
+    
+    // 컬럼 설정 버튼
+    var saveBtn = document.getElementById('saveColumnSettings');
+    var resetBtn = document.getElementById('resetColumnSettings');
+    
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+            alert('컬럼 설정이 저장되었습니다!\n테이블 헤더를 드래그해서 순서를 변경하거나, 우측 핸들을 드래그해서 너비를 조절할 수 있습니다.');
+        });
+    }
+    
+    if (resetBtn) {
+        resetBtn.addEventListener('click', async function() {
+            if (!confirm('컬럼 설정을 초기화하시겠습니까?')) return;
+            
+            try {
+                await apiRequest('/settings/columns/reset', {
+                    method: 'POST'
+                });
+                
+                alert('컬럼 설정이 초기화되었습니다!');
+                
+                if (document.getElementById('listPage').classList.contains('active')) {
+                    await loadAssets();
+                }
+            } catch (error) {
+                alert('컬럼 설정 초기화 실패: ' + error.message);
+            }
+        });
+    }
+
+    // 권한 모달 닫기
+    var closePermissionBtn = document.getElementById('closePermissionModal');
+    if (closePermissionBtn) {
+        closePermissionBtn.addEventListener('click', closePermissionModal);
+    }
+    
+    // 권한 모달 외부 클릭시 닫기
+    document.getElementById('permissionModal').addEventListener('click', function(e) {
+        if (e.target.id === 'permissionModal') {
+            closePermissionModal();
+        }
+    });
+    
+    // ========== 페이지 관리 모달 이벤트 ==========
+    
+    // 컬럼 설정 모달 열기
+    var openColumnSettingsBtn = document.getElementById('openColumnSettingsBtn');
+    if (openColumnSettingsBtn) {
+        openColumnSettingsBtn.addEventListener('click', function() {
+            alert('컬럼 설정은 자산 조회 페이지에서 테이블 헤더를 직접 드래그하여 변경할 수 있습니다.\n\n- 헤더를 좌우로 드래그: 순서 변경\n- 헤더 오른쪽 끝 드래그: 크기 조절');
+        });
+    }
+    
+    // 등록 항목 모달 열기
+    var openFieldSettingsBtn = document.getElementById('openFieldSettingsBtn');
+    if (openFieldSettingsBtn) {
+        openFieldSettingsBtn.addEventListener('click', async function() {
+            await openFieldSettingsModal();
+        });
+    }
+    
+    // 등록 항목 모달 닫기
+    var closeFieldSettings = document.getElementById('closeFieldSettings');
+    if (closeFieldSettings) {
+        closeFieldSettings.addEventListener('click', function() {
+            closeFieldSettingsModal();
+        });
+    }
+    
+    // 등록 항목 모달 외부 클릭시 닫기
+    var fieldSettingsModal = document.getElementById('fieldSettingsModal');
+    if (fieldSettingsModal) {
+        fieldSettingsModal.addEventListener('click', function(e) {
+            if (e.target.id === 'fieldSettingsModal') {
+                closeFieldSettingsModal();
+            }
+        });
+    }
+    
+    // 새 필드 추가 버튼
+    var addFieldBtn = document.getElementById('addFieldBtn');
+    if (addFieldBtn) {
+        addFieldBtn.addEventListener('click', async function() {
+            await addNewFieldFromModal();
+        });
+    }
+    
+    // 필드 설정 저장 버튼
+    var saveFieldSettingsBtn = document.getElementById('saveFieldSettings');
+    if (saveFieldSettingsBtn) {
+        saveFieldSettingsBtn.addEventListener('click', async function() {
+            await saveFieldSettingsFromModal();
+        });
+    }
+    
+    // 필드 설정 초기화 버튼
+    var resetFieldSettingsBtn = document.getElementById('resetFieldSettings');
+    if (resetFieldSettingsBtn) {
+        resetFieldSettingsBtn.addEventListener('click', async function() {
+            if (!confirm('등록 항목을 초기화하시겠습니까?')) return;
+            
+            try {
+                await apiRequest('/settings/registration-fields/reset', {
+                    method: 'POST'
+                });
+                
+                alert('등록 항목이 초기화되었습니다!');
+                await openFieldSettingsModal();
+                
+            } catch (error) {
+                alert('초기화 실패: ' + error.message);
+            }
+        });
+    }
+    
+    // 대시보드 차트 생성 버튼
+    var generateChartBtn = document.getElementById('generateChartBtn');
+    if (generateChartBtn) {
+        generateChartBtn.addEventListener('click', async function() {
+            await handleGenerateChart();
+        });
+    }
+    
+    // 차트 설정 적용 버튼
+    var applyChartSettingsBtn = document.getElementById('applyChartSettings');
+    if (applyChartSettingsBtn) {
+        applyChartSettingsBtn.addEventListener('click', function() {
+            applyChartSettings();
+            closeChartSettingsModal();
+        });
+    }
+    
+    // 차트 설정 초기화 버튼
+    var resetChartSettingsBtn = document.getElementById('resetChartSettings');
+    if (resetChartSettingsBtn) {
+        resetChartSettingsBtn.addEventListener('click', function() {
+            if (confirm('차트 설정을 초기화하시겠습니까?')) {
+                resetChartSettings();
+            }
+        });
+    }
+    
+    // 차트 설정 모달 열기 버튼
+    var openChartSettingsBtn = document.getElementById('openChartSettings');
+    if (openChartSettingsBtn) {
+        openChartSettingsBtn.addEventListener('click', function() {
+            openChartSettingsModal();
+        });
+    }
+    
+    // 차트 설정 모달 닫기 버튼
+    var closeChartSettingsBtn = document.getElementById('closeChartSettings');
+    if (closeChartSettingsBtn) {
+        closeChartSettingsBtn.addEventListener('click', function() {
+            closeChartSettingsModal();
+        });
+    }
+    
+    // 차트 설정 모달 외부 클릭시 닫기
+    var chartSettingsModal = document.getElementById('chartSettingsModal');
+    if (chartSettingsModal) {
+        chartSettingsModal.addEventListener('click', function(e) {
+            if (e.target.id === 'chartSettingsModal') {
+                closeChartSettingsModal();
+            }
+        });
+    }
+    
+    // 차트 높이 슬라이더 값 표시
+    var chartHeightSlider = document.getElementById('chartHeight');
+    if (chartHeightSlider) {
+        chartHeightSlider.addEventListener('input', function() {
+            document.getElementById('chartHeightValue').textContent = this.value;
+        });
+    }
+    
+    // 세션 복원 시도
+    var savedToken = localStorage.getItem('authToken');
+    var savedUser = localStorage.getItem('currentUser');
+    
+    if (savedToken && savedUser) {
+        authToken = savedToken;
+        currentUser = JSON.parse(savedUser);
+        showMainApp(currentUser);
+    }
+});

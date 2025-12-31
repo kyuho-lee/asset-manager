@@ -1,0 +1,31 @@
+# Node modules
+node_modules/
+npm-debug.log*
+
+# 환경 변수 (중요!)
+.env
+.env.local
+.env.production
+
+# 운영체제
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 로그
+logs/
+*.log
+
+# 임시 파일
+*.tmp
+*.temp
+.cache/
+
+# 빌드 파일
+dist/
+build/

@@ -1,0 +1,105 @@
+1. C:\project\asset-manager\backend
+
+2. npm install
+
+3. xampp 실행
+
+4. apache / mysql start
+
+5. .env 파일 생성
+
+
+# 서버 설정
+PORT=5000
+NODE_ENV=development
+
+# MySQL 데이터베이스
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=asset_manager
+
+# JWT 시크릿 키
+JWT_SECRET=your-super-secret-key-change-this-in-production-2024
+JWT_EXPIRE=30m
+
+# 세션 설정
+SESSION_TIMEOUT=1800000
+
+6.  database_schema_correct.sql  실행 
+
+
+// 로그인 계정 잠길떄 
+DELETE FROM login_attempts WHERE email = 'admin@example.com';
+
+
+
+
+
+
+
+
+Railway  db setting 정보
+
+MYSQL_DATABASE
+railway
+
+MYSQL_PUBLIC_URL
+mysql://root:svvtxEdryhXYDVuytSMozGxpFbVALNMd@shinkansen.proxy.rlwy.net:21004/railway
+
+MYSQL_ROOT_PASSWORD
+svvtxEdryhXYDVuytSMozGxpFbVALNMd
+
+MYSQL_URL
+mysql://root:svvtxEdryhXYDVuytSMozGxpFbVALNMd@mysql.railway.internal:3306/railway
+
+MYSQLDATABASE
+railway
+
+MYSQLHOST
+mysql.railway.internal
+
+MYSQLPASSWORD
+svvtxEdryhXYDVuytSMozGxpFbVALNMd
+
+MYSQLPORT
+3306
+
+MYSQLUSER
+root
+
+db 연결 정보
+Connection Name: Railway Asset Manager
+Hostname: shinkansen.proxy.rlwy.net
+Port: 21004
+Username: root
+Password: svvtxEdryhXYDVuytSMozGxpFbVALNMd
+Default Schema: railway
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,198 @@
+const express = require('express');
+const router = express.Router();
+const db = require('../config/database');
+const { authenticateToken } = require('../middleware/auth');
+
+// ============= 컬럼 설정 관리 =============
+
+// 컬럼 설정 조회
+router.get('/columns', authenticateToken, async (req, res) => {
+  try {
+    const [columns] = await db.query(
+      'SELECT * FROM column_settings ORDER BY display_order'
+    );
+    res.json(columns);
+  } catch (error) {
+    console.error('컬럼 설정 조회 오류:', error);
+    res.status(500).json({ error: '컬럼 설정을 불러오는데 실패했습니다.' });
+  }
+});
+
+// 컬럼 설정 업데이트
+router.put('/columns', authenticateToken, async (req, res) => {
+  try {
+    const { columns } = req.body;
+    
+    if (!Array.isArray(columns)) {
+      return res.status(400).json({ error: '잘못된 데이터 형식입니다.' });
+    }
+
+    // 트랜잭션 시작
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      // 각 컬럼 설정 업데이트
+      for (const column of columns) {
+        await connection.query(
+          `UPDATE column_settings 
+           SET is_visible = ?, 
+               is_required = ?, 
+               display_order = ?,
+               display_name = ?
+           WHERE field_name = ?`,
+          [column.isVisible, column.isRequired, column.order, column.label, column.key]
+        );
+      }
+
+      await connection.commit();
+      connection.release();
+
+      res.json({ message: '컬럼 설정이 저장되었습니다.' });
+    } catch (error) {
+      await connection.rollback();
+      connection.release();
+      throw error;
+    }
+  } catch (error) {
+    console.error('컬럼 설정 업데이트 오류:', error);
+    res.status(500).json({ error: '컬럼 설정 저장에 실패했습니다.' });
+  }
+});
+
+// 컬럼 설정 초기화
+router.post('/columns/reset', authenticateToken, async (req, res) => {
+  try {
+    // 기본값으로 초기화
+    await db.query(`
+      UPDATE column_settings 
+      SET is_visible = CASE 
+        WHEN field_name IN ('assetNumber', 'assetName', 'category', 'status') THEN true
+        ELSE true
+      END,
+      is_required = CASE 
+        WHEN field_name IN ('assetNumber', 'assetName', 'category', 'status') THEN true
+        ELSE false
+      END
+    `);
+
+    const [columns] = await db.query('SELECT * FROM column_settings ORDER BY display_order');
+    res.json({ message: '컬럼 설정이 초기화되었습니다.', columns });
+  } catch (error) {
+    console.error('컬럼 설정 초기화 오류:', error);
+    res.status(500).json({ error: '컬럼 설정 초기화에 실패했습니다.' });
+  }
+});
+
+// ============= 등록 항목 관리 =============
+
+// 등록 항목 조회
+router.get('/registration-fields', authenticateToken, async (req, res) => {
+  try {
+    const [fields] = await db.query(
+      'SELECT * FROM registration_fields ORDER BY display_order'
+    );
+    res.json(fields);
+  } catch (error) {
+    console.error('등록 항목 조회 오류:', error);
+    res.status(500).json({ error: '등록 항목을 불러오는데 실패했습니다.' });
+  }
+});
+
+// 등록 항목 업데이트 (전체 교체 방식)
+router.put('/registration-fields', authenticateToken, async (req, res) => {
+  try {
+    const { fields } = req.body;
+    
+    if (!Array.isArray(fields)) {
+      return res.status(400).json({ error: '잘못된 데이터 형식입니다.' });
+    }
+
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      // 기존 커스텀 필드 모두 삭제 (기본 필드는 유지)
+      await connection.query(
+        `DELETE FROM registration_fields WHERE field_name LIKE 'custom_%'`
+      );
+      
+      // 필드 업데이트 또는 추가
+      for (let i = 0; i < fields.length; i++) {
+        const field = fields[i];
+        
+        // 필드 존재 확인
+        const [existing] = await connection.query(
+          'SELECT id FROM registration_fields WHERE field_name = ?',
+          [field.key]
+        );
+        
+        if (existing.length > 0) {
+          // 기존 필드 업데이트
+          await connection.query(
+            `UPDATE registration_fields 
+             SET display_name = ?,
+                 field_type = ?,
+                 is_required = ?, 
+                 is_visible = ?, 
+                 display_order = ?,
+                 placeholder = ?
+             WHERE field_name = ?`,
+            [field.name, field.type, field.required, true, i, field.name + '을(를) 입력하세요', field.key]
+          );
+        } else {
+          // 새 필드 추가
+          await connection.query(
+            `INSERT INTO registration_fields 
+             (field_name, display_name, field_type, is_required, is_visible, placeholder, display_order)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [field.key, field.name, field.type, field.required, true, field.name + '을(를) 입력하세요', i]
+          );
+          
+          // column_settings에도 추가
+          await connection.query(
+            `INSERT INTO column_settings 
+             (field_name, display_name, is_visible, is_required, display_order)
+             VALUES (?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE display_name = ?, is_required = ?`,
+            [field.key, field.name, true, field.required, i, field.name, field.required]
+          );
+        }
+      }
+
+      await connection.commit();
+      connection.release();
+
+      res.json({ message: '등록 항목이 저장되었습니다.' });
+    } catch (error) {
+      await connection.rollback();
+      connection.release();
+      throw error;
+    }
+  } catch (error) {
+    console.error('등록 항목 업데이트 오류:', error);
+    res.status(500).json({ error: '등록 항목 저장에 실패했습니다.' });
+  }
+});
+
+// 등록 항목 초기화
+router.post('/registration-fields/reset', authenticateToken, async (req, res) => {
+  try {
+    await db.query(`
+      UPDATE registration_fields 
+      SET is_required = CASE 
+        WHEN field_name IN ('assetNumber', 'assetName', 'category', 'status') THEN true
+        ELSE false
+      END,
+      is_visible = true
+    `);
+
+    const [fields] = await db.query('SELECT * FROM registration_fields ORDER BY display_order');
+    res.json({ message: '등록 항목이 초기화되었습니다.', fields });
+  } catch (error) {
+    console.error('등록 항목 초기화 오류:', error);
+    res.status(500).json({ error: '등록 항목 초기화에 실패했습니다.' });
+  }
+});
+
+module.exports = router;
