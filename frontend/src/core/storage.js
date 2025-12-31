@@ -12,8 +12,15 @@ export function saveToStorage(key, value) {
 
 export function loadFromStorage(key) {
     try {
-        const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : null;
+        const value = localStorage.getItem(key);
+        
+        // authToken은 문자열 그대로 반환
+        if (key === 'authToken') {
+            return value;
+        }
+        
+        // 나머지는 JSON.parse
+        return value ? JSON.parse(value) : null;
     } catch (error) {
         console.error('Storage 로드 오류:', error);
         return null;
