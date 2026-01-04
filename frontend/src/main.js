@@ -188,11 +188,6 @@ function showPage(pageName) {
             break;
     }
 }
-
-// ========== 전역 함수 Export (기존 호환성) ==========
-window.showPage = showPage;
-
-console.log('✅ Main.js 로드 완료');
 // ========== 전역 함수 Export (기존 호환성) ==========
 window.showPage = showPage;
 
