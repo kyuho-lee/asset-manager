@@ -13,6 +13,7 @@ import { initReels, loadReels } from './features/reels/index.js';
 //import { initStories } from './features/stories/index.js';
 import { initChat, loadChatRooms } from './features/chat/index.js';
 import { initComments } from './features/comments/index.js';
+import { initAssets } from './features/assets/index.js';  // ← 추가!
 //import { initProfile } from './features/profile/index.js';
 //import { initFollow } from './features/follow/index.js';
 //import { initNotifications } from './features/notifications/index.js';
@@ -96,14 +97,19 @@ async function showMainApp(user) {
         initReels();
         console.log('✅ Reels 초기화');
         
-        initStories();
-        console.log('✅ Stories 초기화');
+        //initStories();
+        //console.log('✅ Stories 초기화');
         
         initChat(socket);  // Socket 전달
         console.log('✅ Chat 초기화');
         
         initComments();
         console.log('✅ Comments 초기화');
+
+
+        initAssets();  // ← 추가!
+        console.log('✅ Assets 초기화');
+
         
        // initProfile();
        // console.log('✅ Profile 초기화');
@@ -187,3 +193,37 @@ function showPage(pageName) {
 window.showPage = showPage;
 
 console.log('✅ Main.js 로드 완료');
+// ========== 전역 함수 Export (기존 호환성) ==========
+window.showPage = showPage;
+
+// 모바일 메뉴
+window.closeMobileMenu = function() {
+    const mobileMenu = document.getElementById('mobileMenu');
+    if (mobileMenu) {
+        mobileMenu.classList.remove('active');
+    }
+};
+
+// 사용자 드롭다운
+window.toggleUserDropdown = function() {
+    const dropdown = document.getElementById('userDropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('active');
+    }
+};
+
+// 모바일 메뉴 토글
+window.toggleMobileMenu = function() {
+    const mobileMenu = document.getElementById('mobileMenu');
+    if (mobileMenu) {
+        mobileMenu.classList.toggle('active');
+    }
+};
+
+// 로그아웃
+window.logout = function() {
+    localStorage.clear();
+    location.reload();
+};
+
+console.log('✅ 전역 함수 등록 완료');
