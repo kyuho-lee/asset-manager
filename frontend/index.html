@@ -218,13 +218,13 @@ button[onclick*="downloadExcel"]:hover {
             </p>
         </div>
         <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-            <button onclick="downloadExcelTemplate()" style="flex: 1; padding: 10px; background: white; color: #4CAF50; border: 1.5px solid #4CAF50; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s;">
+            <button onclick="window.assetsFeature.downloadExcelTemplate()" style="flex: 1; padding: 10px; background: white; color: #4CAF50; border: 1.5px solid #4CAF50; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s;">
                 📄 템플릿
             </button>
-            <button onclick="showExcelUploadModal()" style="flex: 1; padding: 10px; background: white; color: #2196F3; border: 1.5px solid #2196F3; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s;">
+            <button onclick="window.assetsFeature.showExcelUploadModal()" style="flex: 1; padding: 10px; background: white; color: #2196F3; border: 1.5px solid #2196F3; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s;">
                 📤 업로드
             </button>
-            <button onclick="downloadExcel()" style="flex: 1; padding: 10px; background: white; color: #0066cc; border: 1.5px solid #0066cc; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s;">
+            <button onclick="window.assetsFeature.downloadExcel()" style="flex: 1; padding: 10px; background: white; color: #0066cc; border: 1.5px solid #0066cc; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s;">
                 📥 다운로드
             </button>
         </div>
@@ -238,14 +238,14 @@ button[onclick*="downloadExcel"]:hover {
                 <div style="position: relative;">
                     <input type="text" id="searchInput" placeholder="검색어를 입력하세요..." 
                         style="width: 100%; padding: 10px 40px 10px 15px; border: 1.5px solid #ddd; border-radius: 6px; font-size: 14px; transition: all 0.2s; box-sizing: border-box;"
-                        onkeypress="if(event.key === 'Enter') searchAssets()">
+                        onkeypress="if(event.key === 'Enter') window.assetsFeature.handleSearch()">
                     <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #999; font-size: 18px; pointer-events: none;">🔍</span>
                 </div>
                 <div class="search-buttons" style="display: flex; gap: 8px;">
-                    <button onclick="searchAssets()" style="padding: 10px 24px; background: #0066cc; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
+                    <button onclick="window.assetsFeature.handleSearch()" style="padding: 10px 24px; background: #0066cc; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
                         검색
                     </button>
-                    <button onclick="resetSearch()" style="padding: 10px 20px; background: white; color: #666; border: 1.5px solid #ddd; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
+                    <button onclick="window.assetsFeature.resetSearch()" style="padding: 10px 20px; background: white; color: #666; border: 1.5px solid #ddd; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
                         초기화
                     </button>
                 </div>
@@ -302,7 +302,7 @@ button[onclick*="downloadExcel"]:hover {
                         <option value="avg">평균 (가격)</option>
                     </select>
                 </div>
-                <button type="button" class="btn-primary" id="generateChartBtn" style="padding: 10px 30px; height: 44px;">
+                <button type="button" class="btn-primary" id="generateChartBtn" onclick="window.assetsFeature.updateChart()" style="padding: 10px 30px; height: 44px;">
                     그래프 생성
                 </button>
             </div>
@@ -398,7 +398,7 @@ button[onclick*="downloadExcel"]:hover {
         <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
                 <h2>엑셀 파일 업로드</h2>
-                <button class="close-btn" onclick="closeExcelUploadModal()">×</button>
+                <button class="close-btn" onclick="window.assetsFeature.closeExcelUploadModal()">×</button>
             </div>
             <div class="modal-body">
                 <div style="margin-bottom: 20px;">
@@ -419,10 +419,10 @@ button[onclick*="downloadExcel"]:hover {
                 </div>
                 
                 <div class="modal-buttons" style="margin-top: 20px;">
-                    <button type="button" onclick="processExcelUpload()" class="btn-primary" id="uploadExcelBtn" disabled>
+                    <button type="button" onclick="window.assetsFeature.processExcelUpload()" class="btn-primary" id="uploadExcelBtn" disabled>
                         업로드 및 등록
                     </button>
-                    <button type="button" onclick="closeExcelUploadModal()" class="btn-secondary">
+                    <button type="button" onclick="window.assetsFeature.closeExcelUploadModal()" class="btn-secondary">
                         취소
                     </button>
                 </div>
