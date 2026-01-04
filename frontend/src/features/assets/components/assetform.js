@@ -1,7 +1,7 @@
 // ========== Asset Form Component ==========
 // 자산 등록/수정 폼
 
-import { createAsset, updateAsset } from '../api/assetsApi.js';
+import { createAsset, updateAsset } from '../api/assetsapi.js';
 import { formatDate, validateAssetData, convertKeysToSnakeCase } from '../utils/assetutils.js';
 
 let currentFields = [];
